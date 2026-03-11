@@ -70,13 +70,13 @@ name = "Start Backend"
 author = "agent"
 mode = "sequential"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8000 npm run server:dev"
-waitForPort = 8000
-
-[workflows.workflow.metadata]
-outputType = "console"
+args = "npm run server:dev"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Start Frontend"
