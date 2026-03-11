@@ -248,6 +248,8 @@ export default function JourneyScreen() {
   const [showConfirmRelapse, setShowConfirmRelapse] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebMsg, setCelebMsg] = useState("");
+  const [previewDay, setPreviewDay] = useState<number | null>(null);
+  const [titleTapCount, setTitleTapCount] = useState(0);
   const celebOpacity = useSharedValue(0);
   const celebY = useSharedValue(20);
   const celebStyle = useAnimatedStyle(() => ({
@@ -259,6 +261,16 @@ export default function JourneyScreen() {
 
   const streak = user.currentStreak;
   const todayChecked = !canCheckInToday;
+  const displayStreak = previewDay !== null ? previewDay : streak;
+
+  function handleTitleTap() {
+    const next = titleTapCount + 1;
+    setTitleTapCount(next);
+    if (next >= 5) {
+      setTitleTapCount(0);
+      setPreviewDay(previewDay === null ? 0 : null);
+    }
+  }
 
   async function handleYes() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -302,14 +314,38 @@ export default function JourneyScreen() {
   return (
     <View style={styles.container}>
       {/* Full-screen journey scene */}
-      <JourneyScene streak={streak} />
+      <JourneyScene streak={displayStreak} />
+
+      {/* Preview mode controls */}
+      {previewDay !== null && (
+        <View style={styles.previewBar}>
+          <Pressable
+            style={styles.previewArrow}
+            onPress={() => setPreviewDay(Math.max(0, previewDay - 1))}
+          >
+            <Ionicons name="chevron-back" size={18} color="#fff" />
+          </Pressable>
+          <View style={styles.previewLabel}>
+            <Text style={styles.previewLabelText}>Preview — Day {previewDay}</Text>
+          </View>
+          <Pressable
+            style={styles.previewArrow}
+            onPress={() => setPreviewDay(Math.min(7, previewDay + 1))}
+          >
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </Pressable>
+          <Pressable style={styles.previewExit} onPress={() => setPreviewDay(null)}>
+            <Text style={styles.previewExitText}>Exit</Text>
+          </Pressable>
+        </View>
+      )}
 
       {/* Header overlay at top - moved down to avoid notch */}
       <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top + 24 }]}>
         <View style={styles.headerContent}>
-          <View style={styles.headerTextBlock}>
+          <Pressable style={styles.headerTextBlock} onPress={handleTitleTap}>
             <Text style={styles.screenTitle}>Reclaim Yourself</Text>
-          </View>
+          </Pressable>
           {user.freezePoints > 0 && (
             <View style={styles.freezeBadge}>
               <Ionicons name="snow-outline" size={12} color={Colors.sky} />
@@ -946,5 +982,46 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     lineHeight: 16,
+  },
+
+  previewBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.65)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 8,
+    zIndex: 100,
+  },
+  previewArrow: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  previewLabel: {
+    flex: 1,
+    alignItems: "center",
+  },
+  previewLabelText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: Colors.white,
+    letterSpacing: 0.2,
+  },
+  previewExit: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,80,80,0.3)",
+  },
+  previewExitText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#ff6b6b",
   },
 });
