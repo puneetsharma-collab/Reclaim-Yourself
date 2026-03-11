@@ -32,7 +32,11 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 // ─── Asset imports ───────────────────────────────────────────────────────────
 const IMG_DAY0 = require("../../assets/images/arin-day0.png");
 const IMG_DAY1 = require("../../assets/images/arin-day1.png");
+const IMG_DAY2 = require("../../assets/images/arin-day2.jpg");
+const IMG_DAY3 = require("../../assets/images/arin-day3.jpg");
+const IMG_DAY4 = require("../../assets/images/arin-day4.jpg");
 const IMG_DAY5 = require("../../assets/images/arin-day5.jpg");
+const IMG_DAY6 = require("../../assets/images/arin-day6.jpg");
 const IMG_DAY7 = require("../../assets/images/arin-day7.jpg");
 const IMG_PATH_BG = require("../../assets/images/path-bg.jpg");
 const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
@@ -49,10 +53,18 @@ function getSceneState(streak: number): {
 
   if (streak === 0) {
     characterImage = IMG_DAY0;
-  } else if (streak <= 2) {
+  } else if (streak === 1) {
     characterImage = IMG_DAY1;
-  } else if (streak <= 6) {
+  } else if (streak === 2) {
+    characterImage = IMG_DAY2;
+  } else if (streak === 3) {
+    characterImage = IMG_DAY3;
+  } else if (streak === 4) {
+    characterImage = IMG_DAY4;
+  } else if (streak === 5) {
     characterImage = IMG_DAY5;
+  } else if (streak === 6) {
+    characterImage = IMG_DAY6;
   } else {
     characterImage = IMG_DAY7;
   }
