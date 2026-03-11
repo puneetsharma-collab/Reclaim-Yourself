@@ -292,9 +292,9 @@ export default function JourneyScreen() {
       {/* Full-screen journey scene */}
       <JourneyScene streak={streak} />
 
-      {/* Journey Days Progress - show days 2-7 with checkpoint at day 3 */}
+      {/* Journey Days Progress - show days 1-7 with checkpoint at day 3 */}
       <View style={[styles.journeyDaysContainer, { top: insets.top + 80 }]}>
-        {[2, 3, 4, 5, 6, 7].map((day) => (
+        {[1, 2, 3, 4, 5, 6, 7].map((day) => (
           <View key={day} style={styles.dayDotWrapper}>
             <View
               style={[
