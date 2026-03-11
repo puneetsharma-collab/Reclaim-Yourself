@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     color: Colors.sky,
   },
   checkInBox: {
-    backgroundColor: "rgba(0, 0, 0, 0.25)",
+    backgroundColor: "rgba(0, 0, 0, 0.08)",
     borderRadius: 16,
     padding: 16,
     shadowColor: "rgba(0, 0, 0, 0.2)",
@@ -696,9 +696,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   checkInQ: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
-    color: Colors.textDark,
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#000000",
     lineHeight: 21,
     marginBottom: 4,
   },
