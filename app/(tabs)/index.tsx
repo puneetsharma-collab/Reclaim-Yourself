@@ -680,15 +680,9 @@ const styles = StyleSheet.create({
     color: Colors.sky,
   },
   checkInBox: {
-    backgroundColor: "rgba(0, 0, 0, 0.08)",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
     borderRadius: 16,
     padding: 16,
-    shadowColor: "rgba(0, 0, 0, 0.2)",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 8,
-    backdropFilter: "blur(20px)",
   },
 
   // Check-in content
