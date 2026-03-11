@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { users } from "../shared/schema";
+import { saveBackup } from "./backup";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool);
@@ -70,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       lastAppOpenDate: today,
     }).returning();
 
+    const allUsers = await db.select().from(users);
+    saveBackup(allUsers);
+
     return res.json({ user: toPublicUser(user) });
   });
 
@@ -122,6 +126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
+
+    const allUsers = await db.select().from(users);
+    saveBackup(allUsers);
+
     return res.json({ user: toPublicUser(user) });
   });
 
