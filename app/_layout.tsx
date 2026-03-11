@@ -1,4 +1,3 @@
-// template
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -7,22 +6,54 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { router, Stack, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
+import { UserProvider, useUser } from "@/context/UserContext";
+import Colors from "@/constants/colors";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+function AuthGate() {
+  const { isLoggedIn, isLoading, hasSeenWelcome } = useUser();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+    const onWelcome = segments[0] === "welcome";
+
+    if (!isLoggedIn && !inAuthGroup) {
+      router.replace("/(auth)/login");
+    } else if (isLoggedIn && !hasSeenWelcome && !onWelcome) {
+      router.replace("/welcome");
+    } else if (isLoggedIn && hasSeenWelcome && (inAuthGroup || onWelcome)) {
+      router.replace("/(tabs)");
+    }
+  }, [isLoggedIn, isLoading, hasSeenWelcome, segments]);
+
+  return null;
+}
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back" }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
+    <>
+      <AuthGate />
+      <Stack screenOptions={{ headerBackTitle: "Back" }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(auth)"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </>
   );
 }
 
@@ -45,9 +76,11 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
           <KeyboardProvider>
-            <RootLayoutNav />
+            <UserProvider>
+              <RootLayoutNav />
+            </UserProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
