@@ -38,7 +38,6 @@ const IMG_DAY4 = require("../../assets/images/arin-day4.jpg");
 const IMG_DAY5 = require("../../assets/images/arin-day5.jpg");
 const IMG_DAY6 = require("../../assets/images/arin-day6.jpg");
 const IMG_DAY7 = require("../../assets/images/arin-day7.jpg");
-const IMG_PATH_BG = require("../../assets/images/path-bg.jpg");
 const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
 const IMG_SHRINE = require("../../assets/images/shrine-scene.jpg");
 
@@ -107,14 +106,7 @@ function JourneyScene({ streak }: { streak: number }) {
 
   return (
     <View style={styles.sceneContainer}>
-      {/* Full-screen path background */}
-      <Image
-        source={IMG_PATH_BG}
-        style={styles.sceneBackground}
-        resizeMode="cover"
-      />
-
-      {/* Animated character on top of background */}
+      {/* Animated character fills the full background */}
       <Animated.View style={[StyleSheet.absoluteFill, animStyle]}>
         <Image
           source={scene.characterImage}
@@ -509,11 +501,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     overflow: "hidden",
-  },
-  sceneBackground: {
-    ...StyleSheet.absoluteFillObject,
-    width: "100%",
-    height: "100%",
   },
   sceneImage: {
     width: "100%",
