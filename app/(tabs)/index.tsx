@@ -30,42 +30,40 @@ import { useUser } from "@/context/UserContext";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 // ─── Asset imports ───────────────────────────────────────────────────────────
-const IMG_DAY0 = require("../../assets/images/arin-day0.png");
-const IMG_DAY1 = require("../../assets/images/arin-day1.png");
-const IMG_DAY2 = require("../../assets/images/arin-day2.jpg");
-const IMG_DAY3 = require("../../assets/images/arin-day3.jpg");
-const IMG_DAY4 = require("../../assets/images/arin-day4.jpg");
-const IMG_DAY5 = require("../../assets/images/arin-day5.jpg");
-const IMG_DAY6 = require("../../assets/images/arin-day6.jpg");
-const IMG_DAY7 = require("../../assets/images/arin-day7.jpg");
+
+// Level 1 images (Day 0–7)
+// When adding Level 2, create a new block below following the same pattern.
+const LEVEL_IMAGES: Record<number, Record<number, ImageSourcePropType>> = {
+  1: {
+    0: require("../../assets/images/l1-day0.png"),
+    1: require("../../assets/images/l1-day1.png"),
+    2: require("../../assets/images/l1-day2.jpg"),
+    3: require("../../assets/images/l1-day3.jpg"),
+    4: require("../../assets/images/l1-day4.jpg"),
+    5: require("../../assets/images/l1-day5.jpg"),
+    6: require("../../assets/images/l1-day6.jpg"),
+    7: require("../../assets/images/l1-day7.jpg"),
+  },
+  // Level 2 images will go here:
+  // 2: {
+  //   0: require("../../assets/images/l2-day0.jpg"),
+  //   1: require("../../assets/images/l2-day1.jpg"),
+  //   ...
+  // },
+};
+
 const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
 
-// ─── Helper: derive scene state from streak ──────────────────────────────────
-function getSceneState(streak: number): {
+// ─── Helper: derive scene state from streak + level ───────────────────────────
+function getSceneState(streak: number, level: number = 1): {
   characterImage: ImageSourcePropType;
   showCheckpoint: boolean;
   showShrine: boolean;
   streakLabel: string;
 } {
-  let characterImage: ImageSourcePropType;
-
-  if (streak === 0) {
-    characterImage = IMG_DAY0;
-  } else if (streak === 1) {
-    characterImage = IMG_DAY1;
-  } else if (streak === 2) {
-    characterImage = IMG_DAY2;
-  } else if (streak === 3) {
-    characterImage = IMG_DAY3;
-  } else if (streak === 4) {
-    characterImage = IMG_DAY4;
-  } else if (streak === 5) {
-    characterImage = IMG_DAY5;
-  } else if (streak === 6) {
-    characterImage = IMG_DAY6;
-  } else {
-    characterImage = IMG_DAY7;
-  }
+  const levelImages = LEVEL_IMAGES[level] ?? LEVEL_IMAGES[1];
+  const dayIndex = Math.min(streak, 7);
+  const characterImage = levelImages[dayIndex] ?? levelImages[0];
 
   return {
     characterImage,
@@ -83,8 +81,8 @@ function getSceneState(streak: number): {
 }
 
 // ─── Animated scene component ─────────────────────────────────────────────────
-function JourneyScene({ streak }: { streak: number }) {
-  const scene = getSceneState(streak);
+function JourneyScene({ streak, level }: { streak: number; level: number }) {
+  const scene = getSceneState(streak, level);
   const fadeAnim = useSharedValue(1);
   const prevStreakRef = useRef(streak);
 
@@ -292,7 +290,7 @@ export default function JourneyScreen() {
   return (
     <View style={styles.container}>
       {/* Full-screen journey scene */}
-      <JourneyScene streak={displayStreak} />
+      <JourneyScene streak={displayStreak} level={user.currentLevel ?? 1} />
 
       {/* Preview mode controls */}
       {previewDay !== null && (

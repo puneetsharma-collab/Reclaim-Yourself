@@ -42,9 +42,9 @@ The **Run button** starts both automatically. On a fresh GitHub import, `npm ins
 - `app/(tabs)/profile.tsx` — **Profile tab**: user info, reset, logout
 
 ### Assets
-- `assets/images/arin-day0.png` through `arin-day7.jpg` — One unique character image per streak day (0–7)
-- `assets/images/path-bg.jpg` — Journey path background
-- `assets/images/shrine-scene.jpg` — Shrine overlay (Day 7+)
+- `assets/images/l1-day0.png` through `l1-day7.jpg` — Level 1 character images (one per streak day 0–7)
+- Future levels follow the same pattern: `l2-day0.jpg` … `l2-day7.jpg`, etc.
+- `assets/images/shrine-scene.jpg` — Shrine scene (used in Shrine tab)
 
 ## Data Model (PostgreSQL `users` table)
 
@@ -74,14 +74,19 @@ The **Run button** starts both automatically. On a fresh GitHub import, `npm ins
 - Do NOT protect against active "No, I stumbled" — that always resets streak
 
 ### Day → Image Mapping (Journey Screen)
-- Day 0 → `arin-day0.png` (exhausted, at start)
-- Day 1 → `arin-day1.png`
-- Day 2 → `arin-day2.jpg`
-- Day 3 → `arin-day3.jpg`
-- Day 4 → `arin-day4.jpg`
-- Day 5 → `arin-day5.jpg`
-- Day 6 → `arin-day6.jpg`
-- Day 7+ → `arin-day7.jpg` (reclaimed, shrine reached)
+Images are looked up via `LEVEL_IMAGES[level][day]` in `app/(tabs)/index.tsx`.
+
+**Level 1** (`l1-dayN`):
+- Day 0 → `l1-day0.png` (exhausted, at start)
+- Day 1 → `l1-day1.png`
+- Day 2 → `l1-day2.jpg`
+- Day 3 → `l1-day3.jpg`
+- Day 4 → `l1-day4.jpg`
+- Day 5 → `l1-day5.jpg`
+- Day 6 → `l1-day6.jpg`
+- Day 7 → `l1-day7.jpg` (reclaimed)
+
+**Level 2+**: Add images as `l2-day0.jpg` … `l2-day7.jpg` and add a new block to `LEVEL_IMAGES` in `index.tsx`.
 
 ## Design System
 - Colors: `constants/colors.ts` — warm cream, sage green, muted gold, sunrise amber

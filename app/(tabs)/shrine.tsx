@@ -24,7 +24,7 @@ import { useUser } from "@/context/UserContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SHRINE_IMG = require("../../assets/images/shrine-scene.jpg");
-const DAY7_IMG = require("../../assets/images/arin-day7.jpg");
+const DAY7_IMG = require("../../assets/images/l1-day7.jpg");
 const PATH_BG_IMG = require("../../assets/images/path-bg.jpg");
 
 function ShrineScene({ unlocked }: { unlocked: boolean }) {
