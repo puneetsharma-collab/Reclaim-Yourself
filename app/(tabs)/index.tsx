@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     color: Colors.sky,
   },
   checkInBox: {
-    backgroundColor: "rgba(240, 235, 230, 0.20)",
+    backgroundColor: "rgba(240, 235, 230, 0.10)",
     borderRadius: 16,
     padding: 16,
     shadowColor: "rgba(0, 0, 0, 0.2)",
