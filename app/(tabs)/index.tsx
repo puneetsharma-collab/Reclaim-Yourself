@@ -284,29 +284,39 @@ export default function JourneyScreen() {
     await checkInRelapse();
   }
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 12;
+  const topPad = Platform.OS === "web" ? 20 : insets.top + 20;
   const tabBarHeight = 80;
-
-  function getMilestoneLabel(s: number): string {
-    if (s === 0) return "Day 0 - Start";
-    if (s <= 2) return `Day ${s}`;
-    if (s === 3) return "Day 3 - Checkpoint";
-    if (s <= 6) return `Day ${s}`;
-    return "Day 7 - Shrine";
-  }
 
   return (
     <View style={styles.container}>
       {/* Full-screen journey scene */}
       <JourneyScene streak={streak} />
 
-      {/* Journey Progress Label - on top of image */}
-      <View style={styles.journeyLabelTop}>
-        <Text style={styles.journeyLabelText}>{getMilestoneLabel(streak)}</Text>
+      {/* Journey Days Progress - show days 1-7 with checkpoint at day 3 */}
+      <View style={styles.journeyDaysContainer}>
+        {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+          <View key={day} style={styles.dayDotWrapper}>
+            <View
+              style={[
+                styles.dayDot,
+                streak >= day && styles.dayDotActive,
+                day === 3 && styles.dayDotCheckpoint,
+              ]}
+            >
+              <Text style={styles.dayDotText}>{day}</Text>
+            </View>
+            {day === 3 && (
+              <View style={styles.checkpointLabel}>
+                <Ionicons name="flag" size={10} color={Colors.checkpointBlue} />
+                <Text style={styles.checkpointLabelText}>CP</Text>
+              </View>
+            )}
+          </View>
+        ))}
       </View>
 
       {/* Header overlay at top */}
-      <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top }]}>
+      <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top + 8 }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <Text style={styles.screenTitle}>Reclaim Yourself</Text>
@@ -541,26 +551,64 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Journey label on top of image
-  journeyLabelTop: {
+  // Journey days progress tracker
+  journeyDaysContainer: {
     position: "absolute",
-    top: 60,
+    top: 85,
     left: 20,
     right: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.35)",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(0, 0, 0, 0.25)",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     zIndex: 15,
+    gap: 0,
   },
-  journeyLabelText: {
+  dayDotWrapper: {
+    alignItems: "center",
+    flex: 1,
+    gap: 4,
+  },
+  dayDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayDotActive: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
+  },
+  dayDotCheckpoint: {
+    backgroundColor: Colors.checkpointBlue,
+    borderColor: Colors.checkpointBlue,
+    borderWidth: 2,
+  },
+  dayDotText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.white,
-    textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  },
+  checkpointLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 1,
+    backgroundColor: "rgba(66, 135, 245, 0.2)",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  checkpointLabelText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 8,
+    color: Colors.checkpointBlue,
   },
 
   // Header overlay
