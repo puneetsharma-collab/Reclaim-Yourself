@@ -82,18 +82,6 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="progress"
-        options={{
-          title: "Progress",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="chart.bar.fill" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="bar-chart-outline" size={21} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
         name="shrine"
         options={{
           title: "Shrine",

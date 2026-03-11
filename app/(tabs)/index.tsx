@@ -284,15 +284,29 @@ export default function JourneyScreen() {
     await checkInRelapse();
   }
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
+  const topPad = Platform.OS === "web" ? 20 : insets.top + 12;
+  const tabBarHeight = 80;
+
+  function getMilestoneLabel(s: number): string {
+    if (s === 0) return "Day 0 - Start";
+    if (s <= 2) return `Day ${s}`;
+    if (s === 3) return "Day 3 - Checkpoint";
+    if (s <= 6) return `Day ${s}`;
+    return "Day 7 - Shrine";
+  }
 
   return (
     <View style={styles.container}>
       {/* Full-screen journey scene */}
       <JourneyScene streak={streak} />
 
+      {/* Journey Progress Label - on top of image */}
+      <View style={styles.journeyLabelTop}>
+        <Text style={styles.journeyLabelText}>{getMilestoneLabel(streak)}</Text>
+      </View>
+
       {/* Header overlay at top */}
-      <View style={[styles.headerOverlay, { paddingTop: topPad }]}>
+      <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <Text style={styles.screenTitle}>Reclaim Yourself</Text>
@@ -307,8 +321,8 @@ export default function JourneyScreen() {
         </View>
       </View>
 
-      {/* Floating check-in box at bottom */}
-      <View style={styles.checkInBoxWrapper}>
+      {/* Floating check-in box at bottom - above tab bar */}
+      <View style={[styles.checkInBoxWrapper, { paddingBottom: tabBarHeight }]}>
         {/* Freeze info if needed */}
         {user.freezePoints > 0 && (
           <View style={styles.freezeInfoBox}>
@@ -527,6 +541,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+  // Journey label on top of image
+  journeyLabelTop: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    zIndex: 15,
+  },
+  journeyLabelText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: Colors.white,
+    textAlign: "center",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
   // Header overlay
   headerOverlay: {
     position: "absolute",
@@ -580,7 +616,7 @@ const styles = StyleSheet.create({
   // Check-in box wrapper and positioning
   checkInBoxWrapper: {
     position: "absolute",
-    bottom: 10,
+    bottom: 0,
     left: 16,
     right: 16,
     zIndex: 20,
