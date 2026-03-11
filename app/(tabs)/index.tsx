@@ -292,29 +292,6 @@ export default function JourneyScreen() {
       {/* Full-screen journey scene */}
       <JourneyScene streak={streak} />
 
-      {/* Journey Days Progress - show days 1-7 with checkpoint at day 3 */}
-      <View style={[styles.journeyDaysContainer, { top: insets.top + 80 }]}>
-        {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-          <View key={day} style={styles.dayDotWrapper}>
-            <View
-              style={[
-                styles.dayDot,
-                streak >= day && styles.dayDotActive,
-                day === 3 && styles.dayDotCheckpoint,
-              ]}
-            >
-              <Text style={styles.dayDotText}>{day}</Text>
-            </View>
-            {day === 3 && (
-              <View style={styles.checkpointLabel}>
-                <Ionicons name="flag" size={10} color={Colors.checkpointBlue} />
-                <Text style={styles.checkpointLabelText}>CP</Text>
-              </View>
-            )}
-          </View>
-        ))}
-      </View>
-
       {/* Header overlay at top - moved down to avoid notch */}
       <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top + 24 }]}>
         <View style={styles.headerContent}>
@@ -351,6 +328,29 @@ export default function JourneyScreen() {
             onNoPress={handleNoPress}
             user={user}
           />
+        </View>
+
+        {/* Journey Days Progress - show days 1-7 with checkpoint at day 3 */}
+        <View style={styles.journeyDaysContainer}>
+          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+            <View key={day} style={styles.dayDotWrapper}>
+              <View
+                style={[
+                  styles.dayDot,
+                  streak >= day && styles.dayDotActive,
+                  day === 3 && styles.dayDotCheckpoint,
+                ]}
+              >
+                <Text style={styles.dayDotText}>{day}</Text>
+              </View>
+              {day === 3 && (
+                <View style={styles.checkpointLabel}>
+                  <Ionicons name="flag" size={10} color={Colors.checkpointBlue} />
+                  <Text style={styles.checkpointLabelText}>CP</Text>
+                </View>
+              )}
+            </View>
+          ))}
         </View>
       </View>
 
@@ -552,9 +552,6 @@ const styles = StyleSheet.create({
 
   // Journey days progress tracker
   journeyDaysContainer: {
-    position: "absolute",
-    left: 20,
-    right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -562,8 +559,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderRadius: 12,
-    zIndex: 15,
     gap: 0,
+    marginTop: 12,
   },
   dayDotWrapper: {
     alignItems: "center",
@@ -683,7 +680,7 @@ const styles = StyleSheet.create({
     color: Colors.sky,
   },
   checkInBox: {
-    backgroundColor: "rgba(240, 235, 230, 0.10)",
+    backgroundColor: "rgba(240, 235, 230, 0.05)",
     borderRadius: 16,
     padding: 16,
     shadowColor: "rgba(0, 0, 0, 0.2)",
