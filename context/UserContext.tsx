@@ -1,16 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import {
   UserData,
-  getUser,
-  saveUser,
   getCurrentUserId,
   setCurrentUserId,
-  createNewUser,
-  applyMissedDayLogic,
   applyCheckInSuccess,
   applyCheckInRelapse,
   getTodayString,
 } from "@/lib/storage";
+import { getApiUrl } from "@/lib/query-client";
 
 interface UserContextValue {
   user: UserData | null;
@@ -29,6 +26,23 @@ interface UserContextValue {
 
 const UserContext = createContext<UserContextValue | null>(null);
 
+async function apiCall(path: string, method = "GET", body?: unknown) {
+  const base = getApiUrl();
+  const url = new URL(path, base);
+  const res = await fetch(url.toString(), {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+async function saveUserToApi(user: UserData): Promise<void> {
+  await apiCall(`/api/user/${user.username}`, "PUT", user);
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,60 +54,43 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   async function loadUser() {
     try {
-      const id = await getCurrentUserId();
-      if (id) {
-        const userData = await getUser(id);
-        if (userData) {
-          const updated = applyMissedDayLogic(userData);
-          if (updated !== userData) {
-            await saveUser(updated);
-          }
-          setUser(updated);
-          setHasSeenWelcome(true);
-        }
+      const username = await getCurrentUserId();
+      if (username) {
+        const data = await apiCall(`/api/user/${username}`);
+        setUser(data.user);
+        setHasSeenWelcome(true);
       }
     } catch {
-      // silent
+      await setCurrentUserId(null);
     } finally {
       setIsLoading(false);
     }
   }
 
   async function login(anonymousId: string, password: string) {
-    const userData = await getUser(anonymousId);
-    if (!userData) {
-      return { success: false, error: "No account found with this ID." };
+    try {
+      const data = await apiCall("/api/login", "POST", { username: anonymousId, password });
+      await setCurrentUserId(anonymousId);
+      setUser(data.user);
+      setHasSeenWelcome(true);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Login failed.";
+      return { success: false, error: msg };
     }
-    if (userData.password !== password) {
-      return { success: false, error: "Incorrect password." };
-    }
-    const updated = applyMissedDayLogic(userData);
-    if (updated !== userData) {
-      await saveUser(updated);
-    }
-    await setCurrentUserId(anonymousId);
-    setUser(updated);
-    setHasSeenWelcome(true);
-    return { success: true };
   }
 
   async function signup(anonymousId: string, password: string) {
-    const existing = await getUser(anonymousId);
-    if (existing) {
-      return { success: false, error: "This ID is already taken. Choose another." };
+    try {
+      const data = await apiCall("/api/register", "POST", { username: anonymousId, password });
+      await setCurrentUserId(anonymousId);
+      setUser(data.user);
+      setHasSeenWelcome(false);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Registration failed.";
+      return { success: false, error: msg };
     }
-    if (anonymousId.length < 3) {
-      return { success: false, error: "ID must be at least 3 characters." };
-    }
-    if (password.length < 4) {
-      return { success: false, error: "Password must be at least 4 characters." };
-    }
-    const newUser = createNewUser(anonymousId, password);
-    await saveUser(newUser);
-    await setCurrentUserId(anonymousId);
-    setUser(newUser);
-    setHasSeenWelcome(false);
-    return { success: true };
   }
 
   async function logout() {
@@ -105,14 +102,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   async function checkInSuccess() {
     if (!user) return;
     const updated = applyCheckInSuccess(user);
-    await saveUser(updated);
+    await saveUserToApi(updated);
     setUser(updated);
   }
 
   async function checkInRelapse() {
     if (!user) return;
     const updated = applyCheckInRelapse(user);
-    await saveUser(updated);
+    await saveUserToApi(updated);
     setUser(updated);
   }
 
@@ -132,7 +129,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       journeyPosition: 0,
       lastAppOpenDate: getTodayString(),
     };
-    await saveUser(reset);
+    await saveUserToApi(reset);
     setUser(reset);
   }
 

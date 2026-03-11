@@ -146,7 +146,7 @@ export default function ProfileScreen() {
               />
             </View>
             <View style={styles.avatarInfo}>
-              <Text style={styles.avatarId}>{user.anonymousId}</Text>
+              <Text style={styles.avatarId}>{user.username}</Text>
               <View style={styles.levelTag}>
                 <Text style={styles.levelTagText}>{currentLevel}</Text>
               </View>
