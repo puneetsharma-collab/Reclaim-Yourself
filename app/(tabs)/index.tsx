@@ -320,7 +320,6 @@ export default function JourneyScreen() {
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <Text style={styles.screenTitle}>Reclaim Yourself</Text>
-            <Text style={styles.screenSubtitle}>Return to the path.</Text>
           </View>
           {user.freezePoints > 0 && (
             <View style={styles.freezeBadge}>
