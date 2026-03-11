@@ -284,7 +284,7 @@ export default function JourneyScreen() {
     await checkInRelapse();
   }
 
-  const topPad = Platform.OS === "web" ? 20 : insets.top + 20;
+  const topPad = Platform.OS === "web" ? 20 : insets.top + 40;
   const tabBarHeight = 80;
 
   return (
@@ -293,7 +293,7 @@ export default function JourneyScreen() {
       <JourneyScene streak={streak} />
 
       {/* Journey Days Progress - show days 1-7 with checkpoint at day 3 */}
-      <View style={styles.journeyDaysContainer}>
+      <View style={[styles.journeyDaysContainer, { top: insets.top + 80 }]}>
         {[1, 2, 3, 4, 5, 6, 7].map((day) => (
           <View key={day} style={styles.dayDotWrapper}>
             <View
@@ -315,8 +315,8 @@ export default function JourneyScreen() {
         ))}
       </View>
 
-      {/* Header overlay at top */}
-      <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top + 8 }]}>
+      {/* Header overlay at top - moved down to avoid notch */}
+      <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top + 24 }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <Text style={styles.screenTitle}>Reclaim Yourself</Text>
@@ -554,14 +554,13 @@ const styles = StyleSheet.create({
   // Journey days progress tracker
   journeyDaysContainer: {
     position: "absolute",
-    top: 85,
     left: 20,
     right: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     backgroundColor: "rgba(0, 0, 0, 0.25)",
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 8,
     borderRadius: 12,
     zIndex: 15,
