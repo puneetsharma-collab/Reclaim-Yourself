@@ -1,0 +1,178 @@
+Build a mobile-first app called "Reclaim Yourself" to help users quit porn addiction and regain self-control.
+
+Important product rules:
+- Keep the branding exactly as "Reclaim Yourself".
+- Do not rename the app.
+- Use a calm, healing, spiritual-but-simple visual style inspired by a journey/path experience.
+- The onboarding/home aesthetic should feel similar to a peaceful illustrated path journey with shrine/checkpoint progression.
+- The app must feel private, safe, anonymous, encouraging, and non-judgmental.
+
+Tech requirements:
+- Build this as a modern mobile-first web app that runs well inside Replit.
+- Use React + TypeScript + Tailwind CSS.
+- Use clean component structure.
+- Use local storage first so the app works without paid services.
+- If auth/database is needed, create the code in a way that can later be upgraded to Supabase, but for now keep it free-tier friendly.
+- Generate the full working code, not just placeholders.
+- Make the UI polished and visually appealing.
+
+Core app flow:
+1. Login / Signup screen
+- User logs in with anonymous ID and anonymous password.
+- If the user does not have an account, they can create one.
+- No email, phone number, or real identity required.
+- Anonymous ID can be a user-created username.
+- Store user credentials locally for the prototype.
+- Add a privacy note: “Your identity stays anonymous.”
+
+2. Welcome / Journey start page
+- After login, user lands on a welcome screen.
+- Keep the branding “Reclaim Yourself”.
+- Include a peaceful journey illustration vibe.
+- Main CTA button: “Begin My Journey”.
+- Add a short subtitle like: “Rebuild discipline, one day at a time.”
+- Keep the style emotionally uplifting, not clinical.
+
+3. Main app structure
+Create bottom navigation with 4 tabs:
+- Journey
+- Progress
+- Shrine
+- Profile
+
+4. Journey tab
+This is the main gamified screen.
+- Show the user’s current streak in days.
+- Show a path/trail visual where the character moves forward one step for each successful day.
+- The character starts as tired, weak, low-energy, slightly slouched.
+- Each successful day moves the character forward.
+- Day 3 = Checkpoint
+- Day 7 = Shrine
+- Show the environment improving gradually as the user progresses.
+- Make the progress visually satisfying.
+
+Daily check-in card:
+- Title: “Daily Check-in”
+- Show current streak like “0 Days Resisted”, “3 Days Resisted”, etc.
+- Ask: “Did you resist your bad habit today?”
+- Two buttons:
+  1. “Yes, I stayed strong”
+  2. “No, I stumbled”
+
+5. Streak logic
+- If user taps “Yes, I stayed strong”, add 1 day to streak and move character one step forward.
+- If user taps “No, I stumbled”, reset streak to 0 unless a freeze point is available.
+- Track highest streak separately.
+- Only allow one check-in per day.
+- Show the date of last check-in.
+
+6. Freeze point system
+- On day 3, user reaches a checkpoint and earns 1 freeze point.
+- Freeze point protects the streak once.
+- If the user misses a day by not checking in, the app should automatically consume the freeze point so the streak does not break.
+- If the user actively presses “No, I stumbled”, the freeze point should NOT save them unless you add this as a configurable option in code.
+- Show freeze point count clearly on the Journey and Progress pages.
+- Add small text explaining when it is used.
+
+7. Two-level gamification structure
+Design the progression in 2 levels:
+- Level 1: Day 0 to Day 3, ending at the checkpoint where the freeze point is awarded.
+- Level 2: Day 4 to Day 7, ending at the shrine.
+- Visually distinguish both levels on the path.
+- The checkpoint should feel like an achievement milestone.
+- The shrine should feel more sacred, peaceful, and victorious.
+
+8. Shrine event
+- On day 7, user reaches the shrine.
+- Trigger a rewarding animation/state change.
+- The character should visibly recover from a drowsy, weak, exhausted version into a healthier, calmer, stronger version.
+- This should be gradual and meaningful, not sudden or flashy.
+- Add a small celebration message like: “You have reclaimed a part of yourself.”
+- Keep the tone warm and dignified.
+
+9. Progress tab
+Show:
+- Current streak
+- Longest streak
+- Freeze points available
+- Total successful days
+- Total relapse days
+- 7-day progress summary
+- Milestone badges: Day 1, Day 3 Checkpoint, Day 7 Shrine
+
+10. Shrine tab
+- Show unlocked milestones and recovery state.
+- If shrine is not yet reached, show “Shrine awaits at Day 7”.
+- Once unlocked, show the upgraded character state and a peaceful shrine scene.
+- Add encouraging reflection text.
+- Make this tab feel rewarding and serene.
+
+11. Profile tab
+Show:
+- Anonymous ID
+- Date joined
+- Current level
+- Total journeys started
+- Option to reset journey with confirmation
+- Option to log out
+- Keep it minimal and private
+
+12. UI / design guidance
+- Use soft pastel backgrounds, warm sunrise tones, gentle greens, cream, muted gold.
+- Rounded cards, calm shadows, mobile-friendly spacing.
+- Character illustrations can be simple stylized placeholders if needed.
+- Use subtle animation with Framer Motion or CSS transitions.
+- The path progression should be visually central to the app.
+- Preserve a peaceful spiritual journey feeling, not a gaming arcade feel.
+- Do not change the branding name.
+
+13. Data model
+Create a simple local user model with fields like:
+- anonymousId
+- password
+- joinDate
+- currentStreak
+- longestStreak
+- freezePoints
+- totalWins
+- totalRelapses
+- lastCheckInDate
+- shrineUnlocked
+- checkpointUnlocked
+- currentLevel
+- journeyPosition
+
+14. Smart logic details
+- If the app is opened after a missed day, check whether a freeze point is available.
+- If yes, automatically consume 1 freeze point and preserve the streak.
+- If no freeze point exists, mark streak as broken.
+- Make this logic reliable and easy to understand in code.
+- Add comments where the streak and freeze logic is implemented.
+
+15. Content tone
+- No shame-based language.
+- No harsh relapse messaging.
+- Use phrases like:
+  - “You stayed strong today.”
+  - “A stumble does not erase your progress.”
+  - “Return to the path.”
+  - “Reclaim yourself.”
+- Keep the tone supportive and masculine, calm, disciplined, and restorative.
+
+16. Deliverables
+- Generate the complete project files.
+- Include all React components.
+- Include styling.
+- Include local storage logic.
+- Include sample placeholder illustrations/emoji/state blocks if actual artwork is not available.
+- Make the app fully navigable and functional.
+- After generating the app, explain which files control:
+  1. login/signup
+  2. daily streak logic
+  3. freeze point logic
+  4. shrine unlock animation
+  5. path progression UI
+
+17. Final requirement
+Do not give only a plan.
+Build the actual app code in full.
