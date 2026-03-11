@@ -691,10 +691,10 @@ const styles = StyleSheet.create({
   },
   checkInQ: {
     fontFamily: "Inter_700Bold",
-    fontSize: 16,
+    fontSize: 18,
     color: "#000000",
-    lineHeight: 21,
-    marginBottom: 4,
+    lineHeight: 24,
+    marginBottom: 6,
   },
   yesBtn: {
     borderRadius: 12,
@@ -738,17 +738,17 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   noBtnText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-    color: Colors.textDark,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#000000",
   },
   noBtnHint: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 10,
-    color: Colors.textLight,
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: "#333333",
     textAlign: "center",
     fontStyle: "italic",
-    marginTop: 2,
+    marginTop: 3,
   },
 
   // Checked state
