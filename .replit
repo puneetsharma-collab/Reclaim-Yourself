@@ -71,12 +71,12 @@ author = "agent"
 mode = "sequential"
 
 [workflows.workflow.metadata]
-outputType = "webview"
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run server:dev"
-waitForPort = 5000
+args = "PORT=8000 npm run server:dev"
+waitForPort = 8000
 
 [[workflows.workflow]]
 name = "Start Frontend"
@@ -94,9 +94,9 @@ name = "Start Frontend Web"
 author = "agent"
 
 [workflows.workflow.metadata]
-outputType = "console"
+outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npx expo start --web --port 8080"
-waitForPort = 8080
+args = "EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN:8000 node_modules/.bin/expo start --web --port 5000"
+waitForPort = 5000
