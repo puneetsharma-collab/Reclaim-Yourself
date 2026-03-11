@@ -1,0 +1,57 @@
+I have the Journey screen working with my images.
+
+Current result:
+- Path background is visible.
+- Arin character is visible.
+- Shrine and checkpoint are visible.
+- Daily check-in is still a separate card below.
+
+New design:
+Make the entire Journey screen a FULL SCREEN BACKGROUND IMAGE using path-bg.png (or the most suitable background image).
+
+Place the daily check-in question and buttons INSIDE a TRANSPARENT BOX at the BOTTOM of the screen.
+
+Requirements:
+
+1) BACKGROUND
+- `path-bg.png` (or the path background image) covers the full screen height and width.
+- Background image is fixed or parallax if possible, but at minimum it fills the entire viewport.
+- No white space or gaps above/below the image.
+
+2) TRANSPARENT CHECK-IN BOX
+- Move the daily check-in ("Did you stay strong today?", Yes/No buttons, "You stayed strong today" message) into a floating box at the very bottom of the screen.
+- The box should have:
+  - Semi-transparent white or cream background (80% opacity so background scenery shows through).
+  - Rounded corners.
+  - Subtle drop shadow so it floats over the image.
+  - Padding so text is readable.
+  - Text color: dark enough to be readable over the semi-transparent background.
+- The box should be fixed at bottom: 20px from screen bottom, full width with 16px side margins on mobile.
+
+3) CHARACTER + PROGRESS OVERLAYS
+- The Arin character image stays on top of the full background, positioned based on streak as before.
+- Checkpoint and shrine overlays stay visible over the background.
+- Character position logic stays the same.
+
+4) HEADER
+- Keep "Reclaim Yourself" or "Your Journey" branding as a small header at the top, semi-transparent or with background so readable.
+- Show current streak number prominently near the top center.
+
+5) LAYOUT FLOW
+- Top: header + streak number.
+- Middle: full background path image with character positioned by streak.
+- Bottom: floating transparent check-in box with question, status message, buttons.
+
+6) RESPONSIVE
+- On mobile: background full height, box full width minus margins.
+- Text always readable, buttons large enough to tap.
+
+Do NOT:
+- Change streak logic.
+- Remove freeze points.
+- Break navigation or other tabs.
+
+Give me:
+- The full updated code for the Journey component file.
+- Any CSS or Tailwind you add/modify.
+- Label each code block with the exact filename.

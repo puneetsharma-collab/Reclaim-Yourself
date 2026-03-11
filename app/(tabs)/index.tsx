@@ -3,13 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Pressable,
   Modal,
   Platform,
   Image,
   Dimensions,
   ImageSourcePropType,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,8 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 import { useUser } from "@/context/UserContext";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SCENE_HEIGHT = 300;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 // ─── Asset imports ───────────────────────────────────────────────────────────
 const IMG_DAY0 = require("../../assets/images/arin-day0.png");
@@ -96,7 +95,14 @@ function JourneyScene({ streak }: { streak: number }) {
 
   return (
     <View style={styles.sceneContainer}>
-      {/* Full-scene character image (already includes path background) */}
+      {/* Full-screen path background */}
+      <Image
+        source={IMG_PATH_BG}
+        style={styles.sceneBackground}
+        resizeMode="cover"
+      />
+
+      {/* Animated character on top of background */}
       <Animated.View style={[StyleSheet.absoluteFill, animStyle]}>
         <Image
           source={scene.characterImage}
@@ -118,13 +124,6 @@ function JourneyScene({ streak }: { streak: number }) {
           />
         </Animated.View>
       )}
-
-      {/* Bottom gradient fade so the scene blends into the card below */}
-      <LinearGradient
-        colors={["transparent", Colors.background]}
-        style={styles.sceneBottomFade}
-        pointerEvents="none"
-      />
 
       {/* Streak badge floating on scene */}
       <View style={styles.sceneBadge}>
@@ -150,10 +149,82 @@ function JourneyScene({ streak }: { streak: number }) {
         </View>
       )}
 
-      {/* Atmospheric label */}
+      {/* Atmospheric label at bottom */}
       <View style={styles.sceneLabel}>
         <Text style={styles.sceneLabelText}>{scene.streakLabel}</Text>
       </View>
+    </View>
+  );
+}
+
+// ─── Check-in content component ──────────────────────────────────────────────
+function CheckInContent({
+  streak,
+  todayChecked,
+  onYes,
+  onNoPress,
+  user,
+}: {
+  streak: number;
+  todayChecked: boolean;
+  onYes: () => void;
+  onNoPress: () => void;
+  user: any;
+}) {
+  if (todayChecked) {
+    return (
+      <View style={styles.checkInCheckedState}>
+        <View style={styles.checkedIconWrap}>
+          <Ionicons name="checkmark-circle" size={32} color={Colors.sage} />
+        </View>
+        <Text style={styles.checkedTitle}>
+          {streak > 0 ? "You stayed strong today." : "You've logged today."}
+        </Text>
+        <Text style={styles.checkedSub}>Come back tomorrow.</Text>
+        {user.longestStreak > 0 && (
+          <View style={styles.bestRow}>
+            <Ionicons name="trophy-outline" size={11} color={Colors.primary} />
+            <Text style={styles.bestText}>
+              Best: {user.longestStreak} {user.longestStreak === 1 ? "day" : "days"}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.checkInContent}>
+      <Text style={styles.checkInQ}>Did you resist your bad habit today?</Text>
+
+      <Pressable
+        style={({ pressed }) => [styles.yesBtn, pressed && styles.yesBtnPressed]}
+        onPress={onYes}
+        testID="btn-yes"
+      >
+        <LinearGradient
+          colors={[Colors.sage, Colors.sageDark]}
+          style={styles.yesBtnGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Ionicons name="shield-checkmark" size={16} color={Colors.white} />
+          <Text style={styles.yesBtnText}>Yes, I stayed strong</Text>
+        </LinearGradient>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.noBtn, pressed && styles.noBtnPressed]}
+        onPress={onNoPress}
+        testID="btn-no"
+      >
+        <Ionicons name="refresh-outline" size={14} color={Colors.textLight} />
+        <Text style={styles.noBtnText}>No, I stumbled</Text>
+      </Pressable>
+
+      <Text style={styles.noBtnHint}>
+        A stumble does not erase your progress.
+      </Text>
     </View>
   );
 }
@@ -168,8 +239,6 @@ export default function JourneyScreen() {
 
   const celebOpacity = useSharedValue(0);
   const celebY = useSharedValue(20);
-
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   if (!user) return null;
 
@@ -217,162 +286,95 @@ export default function JourneyScreen() {
     transform: [{ translateY: celebY.value }],
   }));
 
+  const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
+
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: topPad, paddingBottom: 120 },
-        ]}
-      >
-        {/* ── Header ── */}
-        <View style={styles.headerRow}>
+    <View style={styles.container}>
+      {/* Full-screen journey scene */}
+      <JourneyScene streak={streak} />
+
+      {/* Header overlay at top */}
+      <View style={[styles.headerOverlay, { paddingTop: topPad }]}>
+        <View style={styles.headerContent}>
           <View style={styles.headerTextBlock}>
             <Text style={styles.screenTitle}>Reclaim Yourself</Text>
-            <Text style={styles.screenSubtitle}>Return to the path. One day at a time.</Text>
+            <Text style={styles.screenSubtitle}>Return to the path.</Text>
           </View>
           {user.freezePoints > 0 && (
             <View style={styles.freezeBadge}>
-              <Ionicons name="snow-outline" size={13} color={Colors.sky} />
+              <Ionicons name="snow-outline" size={12} color={Colors.sky} />
               <Text style={styles.freezeBadgeText}>{user.freezePoints}</Text>
             </View>
           )}
         </View>
+      </View>
 
-        {/* ── Illustrated Journey Scene ── */}
-        <JourneyScene streak={streak} />
-
-        {/* ── Freeze info strip ── */}
+      {/* Floating check-in box at bottom */}
+      <View style={styles.checkInBoxWrapper}>
+        {/* Freeze info if needed */}
         {user.freezePoints > 0 && (
-          <View style={styles.freezeStrip}>
-            <Ionicons name="snow-outline" size={14} color={Colors.sky} />
-            <Text style={styles.freezeStripText}>
-              {user.freezePoints} freeze {user.freezePoints === 1 ? "point" : "points"} — protects your streak if you miss a day.
+          <View style={styles.freezeInfoBox}>
+            <Ionicons name="snow-outline" size={12} color={Colors.sky} />
+            <Text style={styles.freezeInfoText}>
+              {user.freezePoints} freeze {user.freezePoints === 1 ? "point" : "points"} available
             </Text>
           </View>
         )}
 
-        {/* ── Daily Check-in Card ── */}
-        <View style={styles.checkInCard}>
-          <Text style={styles.checkInHeading}>Daily Check-in</Text>
+        {/* Transparent check-in box */}
+        <View style={styles.checkInBox}>
+          <CheckInContent
+            streak={streak}
+            todayChecked={todayChecked}
+            onYes={handleYes}
+            onNoPress={handleNoPress}
+            user={user}
+          />
+        </View>
+      </View>
 
-          {todayChecked ? (
-            <View style={styles.checkedState}>
-              <View style={styles.checkedIconWrap}>
-                <Ionicons name="checkmark-circle" size={40} color={Colors.sage} />
-              </View>
-              <Text style={styles.checkedTitle}>
-                {streak > 0 ? "You stayed strong today." : "You've logged today."}
-              </Text>
-              <Text style={styles.checkedSub}>Come back tomorrow.</Text>
-              {user.longestStreak > 0 && (
-                <View style={styles.bestRow}>
-                  <Ionicons name="trophy-outline" size={13} color={Colors.primary} />
-                  <Text style={styles.bestText}>
-                    Best streak: {user.longestStreak} {user.longestStreak === 1 ? "day" : "days"}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ) : (
-            <>
-              <View style={styles.streakRow}>
-                <Text style={styles.streakBig}>{streak}</Text>
-                <View style={styles.streakMeta}>
-                  <Text style={styles.streakUnit}>
-                    {streak === 1 ? "Day" : "Days"} Resisted
-                  </Text>
-                  {user.longestStreak > 0 && (
-                    <Text style={styles.streakBest}>
-                      Best: {user.longestStreak} {user.longestStreak === 1 ? "day" : "days"}
-                    </Text>
-                  )}
-                </View>
-              </View>
-
-              <Text style={styles.checkInQ}>Did you resist your bad habit today?</Text>
-
-              <Pressable
-                style={({ pressed }) => [styles.yesBtn, pressed && styles.yesBtnPressed]}
-                onPress={handleYes}
-                testID="btn-yes"
-              >
-                <LinearGradient
-                  colors={[Colors.sage, Colors.sageDark]}
-                  style={styles.yesBtnGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+      {/* Milestone progress - scrollable section at very bottom */}
+      <View style={styles.milestoneWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.milestoneScrollContent}
+          scrollEventThrottle={16}
+        >
+          {[
+            { day: 1, label: "Day 1", icon: "footsteps-outline" as const },
+            { day: 3, label: "Checkpoint", icon: "flag" as const },
+            { day: 7, label: "Shrine", icon: "sparkles" as const },
+          ].map((m, i) => {
+            const done = streak >= m.day;
+            return (
+              <View key={m.day} style={styles.milestoneItem}>
+                <View
+                  style={[
+                    styles.milestoneCircle,
+                    done ? styles.milestoneCircleDone : undefined,
+                    m.day === 7 && done ? styles.milestoneCircleShrine : undefined,
+                  ]}
                 >
-                  <Ionicons name="shield-checkmark" size={18} color={Colors.white} />
-                  <Text style={styles.yesBtnText}>Yes, I stayed strong</Text>
-                </LinearGradient>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [styles.noBtn, pressed && styles.noBtnPressed]}
-                onPress={handleNoPress}
-                testID="btn-no"
-              >
-                <Ionicons name="refresh-outline" size={16} color={Colors.textLight} />
-                <Text style={styles.noBtnText}>No, I stumbled</Text>
-              </Pressable>
-
-              <Text style={styles.noBtnHint}>
-                A stumble does not erase your progress.
-              </Text>
-            </>
-          )}
-        </View>
-
-        {/* ── Milestone progress bar ── */}
-        <View style={styles.milestoneCard}>
-          <View style={styles.milestoneRow}>
-            {[
-              { day: 1, label: "Day 1", icon: "footsteps-outline" as const },
-              { day: 3, label: "Checkpoint", icon: "flag" as const },
-              { day: 7, label: "Shrine", icon: "sparkles" as const },
-            ].map((m, i) => {
-              const done = streak >= m.day;
-              return (
-                <View key={m.day} style={styles.milestoneItem}>
-                  <View
-                    style={[
-                      styles.milestoneCircle,
-                      done ? styles.milestoneCircleDone : undefined,
-                      m.day === 7 && done ? styles.milestoneCircleShrine : undefined,
-                    ]}
-                  >
-                    <Ionicons
-                      name={m.icon}
-                      size={14}
-                      color={done ? Colors.white : Colors.textMuted}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.milestoneLabel,
-                      done && styles.milestoneLabelDone,
-                    ]}
-                  >
-                    {m.label}
-                  </Text>
-                  {i < 2 && (
-                    <View
-                      style={[
-                        styles.milestoneLine,
-                        done && streak >= (i === 0 ? 3 : 7)
-                          ? styles.milestoneLineDone
-                          : undefined,
-                      ]}
-                    />
-                  )}
+                  <Ionicons
+                    name={m.icon}
+                    size={12}
+                    color={done ? Colors.white : Colors.textMuted}
+                  />
                 </View>
-              );
-            })}
-          </View>
-        </View>
-      </ScrollView>
+                <Text
+                  style={[
+                    styles.milestoneLabel,
+                    done && styles.milestoneLabelDone,
+                  ]}
+                >
+                  {m.label}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* ── Celebration toast ── */}
       {showCelebration && (
@@ -383,7 +385,7 @@ export default function JourneyScreen() {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <Ionicons name="sparkles" size={18} color={Colors.goldLight} />
+            <Ionicons name="sparkles" size={16} color={Colors.goldLight} />
             <Text style={styles.celebText}>{celebMsg}</Text>
           </LinearGradient>
         </Animated.View>
@@ -398,7 +400,7 @@ export default function JourneyScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Ionicons name="refresh-circle-outline" size={44} color={Colors.amber} />
+            <Ionicons name="refresh-circle-outline" size={40} color={Colors.amber} />
             <Text style={styles.modalTitle}>Are you sure?</Text>
             <Text style={styles.modalBody}>
               This will reset your streak to 0. Freeze points will not protect against an active reset.
@@ -426,55 +428,23 @@ export default function JourneyScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  scrollContent: {
-    gap: 0,
-  },
-
-  // Header
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerTextBlock: {
+  container: {
     flex: 1,
-    gap: 2,
-  },
-  screenTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 24,
-    color: Colors.textDark,
-    letterSpacing: -0.4,
-  },
-  screenSubtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.textLight,
-  },
-  freezeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: Colors.skyPale,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  freezeBadgeText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: Colors.sky,
+    backgroundColor: Colors.background,
+    position: "relative",
   },
 
-  // Journey Scene
+  // Full-screen journey scene
   sceneContainer: {
-    width: SCREEN_WIDTH,
-    height: SCENE_HEIGHT,
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
     overflow: "hidden",
-    position: "relative",
-    marginBottom: 0,
+  },
+  sceneBackground: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
   sceneImage: {
     width: "100%",
@@ -487,18 +457,11 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  sceneBottomFade: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-  },
   sceneBadge: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "rgba(44, 26, 14, 0.52)",
+    top: 100,
+    right: 20,
+    backgroundColor: "rgba(44, 26, 14, 0.6)",
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -506,20 +469,20 @@ const styles = StyleSheet.create({
   },
   sceneBadgeNumber: {
     fontFamily: "Inter_700Bold",
-    fontSize: 28,
+    fontSize: 24,
     color: Colors.white,
-    lineHeight: 32,
+    lineHeight: 28,
     letterSpacing: -1,
   },
   sceneBadgeLabel: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 10,
     color: "rgba(255,255,255,0.8)",
   },
   checkpointBadge: {
     position: "absolute",
-    top: 16,
-    left: 16,
+    top: 100,
+    left: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -530,13 +493,13 @@ const styles = StyleSheet.create({
   },
   checkpointBadgeText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.white,
   },
   shrineBadge: {
     position: "absolute",
-    top: 16,
-    left: 16,
+    top: 100,
+    left: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -547,102 +510,128 @@ const styles = StyleSheet.create({
   },
   shrineBadgeText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textDark,
   },
   sceneLabel: {
     position: "absolute",
-    bottom: 16,
-    left: 16,
-    right: 80,
+    bottom: 200,
+    left: 20,
+    right: 20,
   },
   sceneLabelText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 13,
     color: "rgba(255,255,255,0.9)",
-    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowColor: "rgba(0,0,0,0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+    textAlign: "center",
   },
 
-  // Freeze strip
-  freezeStrip: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    backgroundColor: Colors.skyPale,
+  // Header overlay
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 12,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    marginBottom: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.skyLight,
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    backdropFilter: "blur(10px)",
+    zIndex: 10,
   },
-  freezeStripText: {
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTextBlock: {
+    flex: 1,
+    gap: 1,
+  },
+  screenTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 20,
+    color: Colors.white,
+    letterSpacing: -0.3,
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  screenSubtitle: {
     fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+  },
+  freezeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(148, 210, 255, 0.15)",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  freezeBadgeText: {
+    fontFamily: "Inter_600SemiBold",
     fontSize: 12,
     color: Colors.sky,
-    flex: 1,
   },
 
-  // Check-in card
-  checkInCard: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: 22,
-    padding: 20,
-    gap: 14,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 3,
+  // Check-in box wrapper and positioning
+  checkInBoxWrapper: {
+    position: "absolute",
+    bottom: 10,
+    left: 16,
+    right: 16,
+    zIndex: 20,
   },
-  checkInHeading: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: Colors.textMuted,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  streakRow: {
+  freezeInfoBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 6,
+    backgroundColor: "rgba(148, 210, 255, 0.08)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
   },
-  streakBig: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 56,
-    color: Colors.textDark,
-    lineHeight: 60,
-    letterSpacing: -2,
-  },
-  streakMeta: {
-    gap: 2,
-  },
-  streakUnit: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 16,
-    color: Colors.textDark,
-  },
-  streakBest: {
+  freezeInfoText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    color: Colors.textLight,
+    fontSize: 11,
+    color: Colors.sky,
+  },
+  checkInBox: {
+    backgroundColor: "rgba(240, 235, 230, 0.85)",
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "rgba(0, 0, 0, 0.2)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 8,
+    backdropFilter: "blur(20px)",
+  },
+
+  // Check-in content
+  checkInContent: {
+    gap: 12,
   },
   checkInQ: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.textDark,
-    lineHeight: 23,
+    lineHeight: 21,
+    marginBottom: 4,
   },
   yesBtn: {
-    borderRadius: 15,
+    borderRadius: 12,
     overflow: "hidden",
     shadowColor: Colors.sage,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
     elevation: 3,
   },
   yesBtnPressed: {
@@ -651,105 +640,108 @@ const styles = StyleSheet.create({
   },
   yesBtnGradient: {
     flexDirection: "row",
-    gap: 8,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    gap: 7,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   yesBtnText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.white,
   },
   noBtn: {
     flexDirection: "row",
-    gap: 8,
-    paddingVertical: 13,
-    paddingHorizontal: 20,
+    gap: 7,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 14,
+    borderRadius: 11,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surfaceAlt,
+    borderColor: "rgba(44, 26, 14, 0.15)",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
   },
   noBtnPressed: {
     opacity: 0.7,
   },
   noBtnText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: Colors.textLight,
+    fontSize: 13,
+    color: Colors.textDark,
   },
   noBtnHint: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 10,
+    color: Colors.textLight,
     textAlign: "center",
     fontStyle: "italic",
+    marginTop: 2,
   },
-  checkedState: {
+
+  // Checked state
+  checkInCheckedState: {
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
+    gap: 6,
+    paddingVertical: 8,
   },
-  checkedIconWrap: {},
+  checkedIconWrap: {
+    marginBottom: 2,
+  },
   checkedTitle: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 17,
+    fontSize: 15,
     color: Colors.textDark,
     textAlign: "center",
   },
   checkedSub: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textLight,
     textAlign: "center",
   },
   bestRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
     marginTop: 4,
   },
   bestText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.primary,
   },
 
-  // Milestone card
-  milestoneCard: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
+  // Milestone wrapper at bottom
+  milestoneWrapper: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    zIndex: 5,
   },
-  milestoneRow: {
-    flexDirection: "row",
+  milestoneScrollContent: {
+    paddingHorizontal: 20,
+    gap: 20,
     alignItems: "center",
-    justifyContent: "space-between",
+    paddingVertical: 12,
   },
   milestoneItem: {
     alignItems: "center",
-    gap: 6,
-    flex: 1,
-    position: "relative",
+    gap: 4,
   },
   milestoneCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surfaceAlt,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -763,53 +755,42 @@ const styles = StyleSheet.create({
   },
   milestoneLabel: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: Colors.textMuted,
+    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
   },
   milestoneLabelDone: {
     fontFamily: "Inter_600SemiBold",
-    color: Colors.textDark,
-  },
-  milestoneLine: {
-    position: "absolute",
-    top: 17,
-    left: "55%",
-    right: "-55%",
-    height: 2,
-    backgroundColor: Colors.border,
-    zIndex: -1,
-  },
-  milestoneLineDone: {
-    backgroundColor: Colors.sage,
+    color: Colors.white,
   },
 
   // Celebration toast
   celebToast: {
     position: "absolute",
-    bottom: 130,
+    bottom: 320,
     left: 16,
     right: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: "hidden",
     shadowColor: Colors.sage,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 10,
+    zIndex: 30,
   },
   celebGradient: {
     flexDirection: "row",
     gap: 10,
-    padding: 16,
+    padding: 14,
     alignItems: "center",
   },
   celebText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.white,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 18,
   },
 
   // Modal
