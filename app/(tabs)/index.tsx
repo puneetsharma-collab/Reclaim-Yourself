@@ -39,7 +39,6 @@ const IMG_DAY5 = require("../../assets/images/arin-day5.jpg");
 const IMG_DAY6 = require("../../assets/images/arin-day6.jpg");
 const IMG_DAY7 = require("../../assets/images/arin-day7.jpg");
 const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
-const IMG_SHRINE = require("../../assets/images/shrine-scene.jpg");
 
 // ─── Helper: derive scene state from streak ──────────────────────────────────
 function getSceneState(streak: number): {
@@ -115,19 +114,6 @@ function JourneyScene({ streak }: { streak: number }) {
         />
       </Animated.View>
 
-      {/* When shrine is unlocked, blend in the shrine scene at top half */}
-      {scene.showShrine && (
-        <Animated.View
-          style={[styles.shrineOverlay, { opacity: 0.45 }]}
-          pointerEvents="none"
-        >
-          <Image
-            source={IMG_SHRINE}
-            style={styles.shrineOverlayImage}
-            resizeMode="cover"
-          />
-        </Animated.View>
-      )}
 
       {/* Streak badge floating on scene */}
       <View style={styles.sceneBadge}>
