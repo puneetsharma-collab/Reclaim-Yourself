@@ -75,19 +75,8 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8000 npm run server:dev"
+args = "npm install && PORT=8000 npm run server:dev"
 waitForPort = 8000
-
-[[workflows.workflow]]
-name = "Start Frontend"
-author = "agent"
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run expo:dev"
-waitForPort = 8081
-ensurePreviewReachable = "/status"
 
 [[workflows.workflow]]
 name = "Start Frontend Web"
@@ -98,5 +87,5 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN:8000 node_modules/.bin/expo start --web --port 5000"
+args = "npm install && EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN:8000 node_modules/.bin/expo start --web --port 5000"
 waitForPort = 5000

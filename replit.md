@@ -1,77 +1,94 @@
 # Reclaim Yourself
 
-A mobile-first app to help users quit porn addiction and regain self-control through a peaceful spiritual journey experience.
+A mobile-first app to help users build discipline and overcome addiction through a gamified spiritual journey.
 
 ## Architecture
 
-- **Frontend**: Expo (React Native) with Expo Router for file-based routing
-- **Backend**: Express.js (TypeScript) on port 5000 — serves API and landing page
-- **Frontend Port**: 8081 (Expo dev server)
-- **Storage**: AsyncStorage (local device storage, no backend database needed)
-- **State**: React Context (UserContext) for auth and journey data
+- **Frontend**: Expo (React Native) with Expo Router for file-based routing, running as a **web app** on port 5000
+- **Backend**: Express.js (TypeScript) on port 8000 — serves REST API
+- **Database**: PostgreSQL (Replit built-in) via Drizzle ORM — stores all user accounts and progress
+- **Auth**: Username + hashed password (bcryptjs), session tracked via AsyncStorage (client-side user ID cache)
+
+## Running the Project
+
+Two workflows must both be running:
+
+| Workflow | Command | Port |
+|---|---|---|
+| **Start Backend** | `npm install && PORT=8000 npm run server:dev` | 8000 |
+| **Start Frontend Web** | `npm install && EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN:8000 node_modules/.bin/expo start --web --port 5000` | 5000 (preview) |
+
+The **Run button** starts both automatically. On a fresh GitHub import, `npm install` runs automatically inside each workflow before the server starts — no manual setup needed.
 
 ## File Structure
 
-### Core Logic
-- `lib/storage.ts` — All streak/freeze/user logic. **Key functions:**
-  - `applyMissedDayLogic()` — Runs on app open, consumes freeze on missed day or breaks streak
-  - `applyCheckInSuccess()` — Increments streak, awards freeze at Day 3, unlocks shrine at Day 7
-  - `applyCheckInRelapse()` — Resets streak unconditionally (freeze does NOT protect active relapses)
-- `context/UserContext.tsx` — Global user state. Provides `login`, `signup`, `logout`, `checkInSuccess`, `checkInRelapse`, `resetJourney`
+### Backend
+- `server/index.ts` — Express server entry point (CORS, logging, static serving)
+- `server/routes.ts` — API routes: `/api/register`, `/api/login`, `/api/user/:username` (GET/PUT)
+- `shared/schema.ts` — Drizzle schema for the `users` table (all game data included)
+
+### Frontend Core
+- `lib/storage.ts` — Game logic: `applyCheckInSuccess()`, `applyCheckInRelapse()`, local user ID cache
+- `lib/query-client.ts` — API fetch helper using `EXPO_PUBLIC_DOMAIN` env var
+- `context/UserContext.tsx` — Global auth + game state. All reads/writes go through the backend API.
 
 ### Screens
-- `app/(auth)/login.tsx` — Anonymous login (username + password)
-- `app/(auth)/register.tsx` — Anonymous account creation
-- `app/welcome.tsx` — Animated welcome screen with "Begin My Journey" CTA
-- `app/(tabs)/index.tsx` — **Journey tab**: streak display, path progression, daily check-in card
+- `app/(auth)/login.tsx` — Anonymous login
+- `app/(auth)/register.tsx` — Account creation
+- `app/welcome.tsx` — Animated welcome screen
+- `app/(tabs)/index.tsx` — **Journey tab**: full-screen character scene, daily check-in, day progress tracker
 - `app/(tabs)/progress.tsx` — **Progress tab**: stats grid, 7-day chart, milestone badges
-- `app/(tabs)/shrine.tsx` — **Shrine tab**: animated shrine scene, character evolution display
-- `app/(tabs)/profile.tsx` — **Profile tab**: user info, privacy notice, reset/logout
+- `app/(tabs)/shrine.tsx` — **Shrine tab**: shrine scene (unlocked at Day 7)
+- `app/(tabs)/profile.tsx` — **Profile tab**: user info, reset, logout
 
-### Navigation
-- `app/_layout.tsx` — Root layout with `AuthGate` component that handles routing based on auth state
-- `app/(tabs)/_layout.tsx` — 4-tab layout with NativeTabs (iOS 26+ liquid glass) + classic fallback
+### Assets
+- `assets/images/arin-day0.png` through `arin-day7.jpg` — One unique character image per streak day (0–7)
+- `assets/images/path-bg.jpg` — Journey path background
+- `assets/images/shrine-scene.jpg` — Shrine overlay (Day 7+)
 
-## Data Model (UserData)
-```typescript
-{
-  anonymousId: string       // username chosen by user
-  password: string          // stored in AsyncStorage
-  joinDate: string          // YYYY-MM-DD
-  currentStreak: number
-  longestStreak: number
-  freezePoints: number      // earned at Day 3 checkpoint
-  totalWins: number         // successful check-ins
-  totalRelapses: number
-  lastCheckInDate: string | null  // YYYY-MM-DD
-  shrineUnlocked: boolean   // true when streak >= 7
-  checkpointUnlocked: boolean // true when streak >= 3
-  currentLevel: number      // 1 (days 0-3) or 2 (days 4-7)
-  journeyPosition: number   // 0-7
-  lastAppOpenDate: string | null // for missed-day detection
-}
-```
+## Data Model (PostgreSQL `users` table)
 
-## Freeze Point Logic
-- Awarded automatically at Day 3 (checkpoint)
-- **Consumed automatically** when app detects user missed a day (lastCheckInDate is 2+ days ago)
-- **Does NOT protect** against active "No, I stumbled" taps — that always resets streak
-- Configurable in `applyCheckInRelapse()` if future feature toggle needed
+| Column | Type | Description |
+|---|---|---|
+| `id` | varchar (UUID) | Primary key |
+| `username` | text | Anonymous ID chosen by user |
+| `password` | text | bcrypt hashed |
+| `join_date` | text | YYYY-MM-DD |
+| `current_streak` | integer | Active streak count |
+| `longest_streak` | integer | All-time best |
+| `freeze_points` | integer | Earned at Day 3, auto-consumed on missed day |
+| `total_wins` | integer | Total successful check-ins |
+| `total_relapses` | integer | Total stumbles |
+| `last_check_in_date` | text | YYYY-MM-DD or null |
+| `shrine_unlocked` | boolean | true when streak >= 7 |
+| `checkpoint_unlocked` | boolean | true when streak >= 3 |
+| `current_level` | integer | 1 (days 0-3) or 2 (days 4-7) |
+| `journey_position` | integer | 0–7 |
+| `last_app_open_date` | text | Used for missed-day detection |
 
-## Gamification Structure
-- **Level 1**: Days 0–3, ends at checkpoint
-- **Level 2**: Days 4–7, ends at shrine
-- Path: 8 nodes (Start, Day 1-2, Checkpoint, Day 4-6, Shrine)
-- Character evolves visually: Exhausted (Day 0) → Awakening (Day 3) → Reclaimed (Day 7)
+## Key Game Logic
+
+### Freeze Points
+- Awarded at Day 3 (checkpoint milestone)
+- Auto-consumed when user missed a day (2+ days since last check-in)
+- Do NOT protect against active "No, I stumbled" — that always resets streak
+
+### Day → Image Mapping (Journey Screen)
+- Day 0 → `arin-day0.png` (exhausted, at start)
+- Day 1 → `arin-day1.png`
+- Day 2 → `arin-day2.jpg`
+- Day 3 → `arin-day3.jpg`
+- Day 4 → `arin-day4.jpg`
+- Day 5 → `arin-day5.jpg`
+- Day 6 → `arin-day6.jpg`
+- Day 7+ → `arin-day7.jpg` (reclaimed, shrine reached)
 
 ## Design System
 - Colors: `constants/colors.ts` — warm cream, sage green, muted gold, sunrise amber
 - Font: Inter (400, 500, 600, 700) via `@expo-google-fonts/inter`
 - Animations: react-native-reanimated
 
-## Dependencies
-- `expo-linear-gradient` — gradient backgrounds and buttons
-- `expo-haptics` — haptic feedback on interactions
-- `expo-blur` — tab bar blur (iOS)
-- `@react-native-async-storage/async-storage` — local data persistence
-- `expo-glass-effect` — liquid glass tab bar detection
+## Environment Variables
+- `DATABASE_URL` — PostgreSQL connection string (set by Replit automatically)
+- `PORT` — Backend port (set to 8000 in workflow)
+- `EXPO_PUBLIC_DOMAIN` — Backend URL used by the frontend for API calls (set to `$REPLIT_DEV_DOMAIN:8000` in workflow)
