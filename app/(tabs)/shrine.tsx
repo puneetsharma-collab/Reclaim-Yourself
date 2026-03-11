@@ -5,6 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  Image,
+  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,24 +22,20 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 import { useUser } from "@/context/UserContext";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SHRINE_IMG = require("../../assets/images/shrine-scene.jpg");
+const DAY7_IMG = require("../../assets/images/arin-day7.jpg");
+const PATH_BG_IMG = require("../../assets/images/path-bg.jpg");
+
 function ShrineScene({ unlocked }: { unlocked: boolean }) {
-  const glow = useSharedValue(0.6);
-  const float = useSharedValue(0);
+  const glowOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (unlocked) {
-      glow.value = withRepeat(
+      glowOpacity.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0.6, { duration: 2000, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        false
-      );
-      float.value = withRepeat(
-        withSequence(
-          withTiming(-6, { duration: 2400, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 2400, easing: Easing.inOut(Easing.sin) })
+          withTiming(0.35, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0.1, { duration: 2200, easing: Easing.inOut(Easing.sin) })
         ),
         -1,
         false
@@ -46,53 +44,43 @@ function ShrineScene({ unlocked }: { unlocked: boolean }) {
   }, [unlocked]);
 
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: glow.value,
-    transform: [{ scale: 0.95 + glow.value * 0.1 }],
-  }));
-
-  const floatStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: float.value }],
+    opacity: glowOpacity.value,
   }));
 
   if (!unlocked) {
     return (
-      <View style={styles.shrineLockedScene}>
-        <View style={styles.mistyBg} />
-        <View style={styles.shrineLockedShape}>
-          <View style={styles.shrineRoof} />
-          <View style={styles.shrineWall}>
-            <Ionicons name="lock-closed" size={28} color={Colors.textMuted} />
+      <View style={styles.shrineSceneWrapper}>
+        <Image source={PATH_BG_IMG} style={styles.shrineSceneImage} resizeMode="cover" />
+        <LinearGradient
+          colors={["rgba(247,243,236,0)", "rgba(247,243,236,0.55)", "rgba(247,243,236,0.92)"]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <View style={styles.shrineLockedOverlay}>
+          <View style={styles.shrineLockedBadge}>
+            <Ionicons name="lock-closed" size={20} color={Colors.textMuted} />
+            <Text style={styles.shrineLockedText}>Shrine awaits at Day 7</Text>
           </View>
         </View>
-        <Text style={styles.shrineLockedLabel}>Shrine awaits at Day 7</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.shrineUnlockedScene}>
+    <View style={styles.shrineSceneWrapper}>
+      <Image source={DAY7_IMG} style={styles.shrineSceneImage} resizeMode="cover" />
+      <Animated.View style={[styles.shrineGoldGlow, glowStyle]} pointerEvents="none" />
       <LinearGradient
-        colors={["#FBF5E6", "#EFE4C0", "#E8D5A0"]}
-        style={StyleSheet.absoluteFill}
+        colors={["transparent", "rgba(247,243,236,0.7)"]}
+        style={[StyleSheet.absoluteFill, { top: "60%" }]}
+        pointerEvents="none"
       />
-      <Animated.View style={[styles.shrineGlowOuter, glowStyle]} />
-      <Animated.View style={[styles.shrineGlowInner, glowStyle]} />
-
-      <Animated.View style={[styles.shrineStructure, floatStyle]}>
-        <View style={styles.shrineRoofUnlocked}>
-          <View style={styles.roofPeak} />
+      <View style={styles.shrineUnlockedOverlay}>
+        <View style={styles.shrineUnlockedBadge}>
+          <Ionicons name="sparkles" size={14} color={Colors.shrineGold} />
+          <Text style={styles.shrineUnlockedText}>Shrine Reached</Text>
         </View>
-        <View style={styles.shrineBodyUnlocked}>
-          <Animated.View style={floatStyle}>
-            <Ionicons name="sparkles" size={32} color={Colors.shrineGold} />
-          </Animated.View>
-        </View>
-        <View style={styles.shrineSteps}>
-          <View style={styles.step} />
-          <View style={[styles.step, styles.stepWide]} />
-        </View>
-      </Animated.View>
-
+      </View>
       <View style={styles.particlesRow}>
         {[0, 1, 2, 3, 4].map((i) => (
           <ShrineParticle key={i} delay={i * 400} />
@@ -341,118 +329,74 @@ const styles = StyleSheet.create({
   shrineSceneCard: {
     borderRadius: 24,
     overflow: "hidden",
-    height: 220,
+    height: 300,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 12,
     elevation: 3,
   },
-  shrineLockedScene: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F0EBE0",
-    gap: 12,
+  shrineSceneWrapper: {
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
+    position: "relative",
   },
-  mistyBg: {
+  shrineSceneImage: {
+    width: "100%",
+    height: "100%",
+  },
+  shrineGoldGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(212, 175, 55, 0.4)",
+  },
+  shrineLockedOverlay: {
     position: "absolute",
-    inset: 0,
-    backgroundColor: "rgba(240, 235, 224, 0.6)",
-  },
-  shrineLockedShape: {
+    bottom: 16,
+    left: 0,
+    right: 0,
     alignItems: "center",
-    opacity: 0.45,
   },
-  shrineRoof: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 30,
-    borderRightWidth: 30,
-    borderBottomWidth: 40,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: Colors.textMuted,
-  },
-  shrineWall: {
-    width: 52,
-    height: 52,
-    backgroundColor: Colors.surfaceAlt,
+  shrineLockedBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 4,
+    gap: 8,
+    backgroundColor: "rgba(247,243,236,0.88)",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
   },
-  shrineLockedLabel: {
+  shrineLockedText: {
     fontFamily: "Inter_500Medium",
     fontSize: 13,
-    color: Colors.textMuted,
-    textAlign: "center",
+    color: Colors.textMedium,
   },
-  shrineUnlockedScene: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  shrineGlowOuter: {
+  shrineUnlockedOverlay: {
     position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
+    top: 14,
+    left: 14,
   },
-  shrineGlowInner: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(212, 175, 55, 0.25)",
-  },
-  shrineStructure: {
+  shrineUnlockedBadge: {
+    flexDirection: "row",
     alignItems: "center",
-    zIndex: 2,
+    gap: 6,
+    backgroundColor: "rgba(253, 249, 235, 0.9)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  shrineRoofUnlocked: {
-    alignItems: "center",
-  },
-  roofPeak: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 36,
-    borderRightWidth: 36,
-    borderBottomWidth: 48,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: Colors.shrineGold,
-  },
-  shrineBodyUnlocked: {
-    width: 64,
-    height: 64,
-    backgroundColor: "rgba(212, 175, 55, 0.25)",
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: Colors.shrineGold,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shrineSteps: {
-    alignItems: "center",
-    gap: 0,
-  },
-  step: {
-    width: 56,
-    height: 8,
-    backgroundColor: Colors.goldLight,
-    borderRadius: 2,
-  },
-  stepWide: {
-    width: 80,
+  shrineUnlockedText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: Colors.primary,
   },
   particlesRow: {
     position: "absolute",
-    bottom: 60,
+    bottom: 50,
+    left: 0,
+    right: 0,
     flexDirection: "row",
+    justifyContent: "center",
     gap: 18,
     zIndex: 3,
   },

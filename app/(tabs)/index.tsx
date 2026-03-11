@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,193 +7,198 @@ import {
   Pressable,
   Modal,
   Platform,
+  Image,
+  Dimensions,
+  ImageSourcePropType,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
   withSequence,
+  withSpring,
   withDelay,
+  Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 import { useUser } from "@/context/UserContext";
 
-const PATH_NODES = [
-  { day: 0, label: "Start", type: "start" },
-  { day: 1, label: "Day 1", type: "node" },
-  { day: 2, label: "Day 2", type: "node" },
-  { day: 3, label: "Checkpoint", type: "checkpoint" },
-  { day: 4, label: "Day 4", type: "node" },
-  { day: 5, label: "Day 5", type: "node" },
-  { day: 6, label: "Day 6", type: "node" },
-  { day: 7, label: "Shrine", type: "shrine" },
-];
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SCENE_HEIGHT = 300;
 
-function PathNode({ node, isActive, isCompleted }: { node: typeof PATH_NODES[0]; isActive: boolean; isCompleted: boolean }) {
-  const scale = useSharedValue(isActive ? 1.2 : 1);
-  const anim = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+// ─── Asset imports ───────────────────────────────────────────────────────────
+const IMG_DAY0 = require("../../assets/images/arin-day0.png");
+const IMG_DAY1 = require("../../assets/images/arin-day1.png");
+const IMG_DAY5 = require("../../assets/images/arin-day5.jpg");
+const IMG_DAY7 = require("../../assets/images/arin-day7.jpg");
+const IMG_PATH_BG = require("../../assets/images/path-bg.jpg");
+const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
+const IMG_SHRINE = require("../../assets/images/shrine-scene.jpg");
 
-  const bg =
-    node.type === "shrine"
-      ? isCompleted ? Colors.shrineGold : Colors.surfaceAlt
-      : node.type === "checkpoint"
-      ? isCompleted ? Colors.checkpointBlue : Colors.surfaceAlt
-      : node.type === "start"
-      ? Colors.sageLight
-      : isCompleted
-      ? Colors.sage
-      : isActive
-      ? Colors.primaryLight
-      : Colors.surfaceAlt;
+// ─── Helper: derive scene state from streak ──────────────────────────────────
+function getSceneState(streak: number): {
+  characterImage: ImageSourcePropType;
+  showCheckpoint: boolean;
+  showShrine: boolean;
+  streakLabel: string;
+} {
+  let characterImage: ImageSourcePropType;
 
-  const borderColor =
-    node.type === "shrine"
-      ? Colors.shrineGold
-      : node.type === "checkpoint"
-      ? Colors.checkpointBlue
-      : isCompleted || isActive
-      ? Colors.sage
-      : Colors.border;
+  if (streak === 0) {
+    characterImage = IMG_DAY0;
+  } else if (streak <= 2) {
+    characterImage = IMG_DAY1;
+  } else if (streak <= 6) {
+    characterImage = IMG_DAY5;
+  } else {
+    characterImage = IMG_DAY7;
+  }
 
-  return (
-    <Animated.View style={[styles.nodeWrapper, anim]}>
-      <View
-        style={[
-          styles.node,
-          { backgroundColor: bg, borderColor },
-          node.type === "shrine" && styles.nodeShrine,
-          node.type === "checkpoint" && styles.nodeCheckpoint,
-          isActive && styles.nodeActive,
-        ]}
-      >
-        {node.type === "shrine" ? (
-          <Ionicons
-            name={isCompleted ? "sparkles" : "diamond-outline"}
-            size={node.type === "shrine" ? 20 : 14}
-            color={isCompleted ? Colors.white : Colors.textMuted}
-          />
-        ) : node.type === "checkpoint" ? (
-          <Ionicons
-            name={isCompleted ? "flag" : "flag-outline"}
-            size={16}
-            color={isCompleted ? Colors.white : Colors.textMuted}
-          />
-        ) : node.type === "start" ? (
-          <Ionicons name="footsteps-outline" size={14} color={Colors.sageDark} />
-        ) : isCompleted ? (
-          <Ionicons name="checkmark" size={14} color={Colors.white} />
-        ) : isActive ? (
-          <Ionicons name="ellipse" size={10} color={Colors.primary} />
-        ) : (
-          <View style={styles.nodeDot} />
-        )}
-      </View>
-      <Text
-        style={[
-          styles.nodeLabel,
-          isActive && styles.nodeLabelActive,
-          isCompleted && styles.nodeLabelDone,
-          node.type === "shrine" && styles.nodeLabelShrine,
-        ]}
-      >
-        {node.label}
-      </Text>
-    </Animated.View>
-  );
+  return {
+    characterImage,
+    showCheckpoint: streak >= 3,
+    showShrine: streak >= 7,
+    streakLabel:
+      streak === 0
+        ? "The path begins here."
+        : streak <= 2
+        ? "The journey has started."
+        : streak <= 6
+        ? "The checkpoint is behind you."
+        : "You have reclaimed a part of yourself.",
+  };
 }
 
-function CharacterFigure({ streakDay }: { streakDay: number }) {
-  const progress = Math.min(streakDay / 7, 1);
-  const bodyOpacity = 0.5 + progress * 0.5;
-  const headSize = 22 + progress * 8;
-  const bodyHeight = 30 + progress * 14;
-  const glowOpacity = streakDay >= 7 ? 0.6 : 0;
+// ─── Animated scene component ─────────────────────────────────────────────────
+function JourneyScene({ streak }: { streak: number }) {
+  const scene = getSceneState(streak);
+  const fadeAnim = useSharedValue(1);
+  const prevStreakRef = useRef(streak);
 
-  const energyColor =
-    streakDay >= 7
-      ? Colors.shrineGold
-      : streakDay >= 3
-      ? Colors.sage
-      : Colors.amber;
+  useEffect(() => {
+    if (prevStreakRef.current !== streak) {
+      prevStreakRef.current = streak;
+      // Fade out → swap → fade in
+      fadeAnim.value = withSequence(
+        withTiming(0, { duration: 200, easing: Easing.out(Easing.ease) }),
+        withTiming(1, { duration: 400, easing: Easing.in(Easing.ease) })
+      );
+    }
+  }, [streak]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: fadeAnim.value,
+  }));
 
   return (
-    <View style={styles.characterContainer}>
-      {streakDay >= 7 && (
-        <View style={[styles.characterGlow, { opacity: glowOpacity }]} />
+    <View style={styles.sceneContainer}>
+      {/* Full-scene character image (already includes path background) */}
+      <Animated.View style={[StyleSheet.absoluteFill, animStyle]}>
+        <Image
+          source={scene.characterImage}
+          style={styles.sceneImage}
+          resizeMode="cover"
+        />
+      </Animated.View>
+
+      {/* When shrine is unlocked, blend in the shrine scene at top half */}
+      {scene.showShrine && (
+        <Animated.View
+          style={[styles.shrineOverlay, { opacity: 0.45 }]}
+          pointerEvents="none"
+        >
+          <Image
+            source={IMG_SHRINE}
+            style={styles.shrineOverlayImage}
+            resizeMode="cover"
+          />
+        </Animated.View>
       )}
-      <View
-        style={[
-          styles.charHead,
-          {
-            width: headSize,
-            height: headSize,
-            borderRadius: headSize / 2,
-            backgroundColor: energyColor,
-            opacity: bodyOpacity,
-          },
-        ]}
+
+      {/* Bottom gradient fade so the scene blends into the card below */}
+      <LinearGradient
+        colors={["transparent", Colors.background]}
+        style={styles.sceneBottomFade}
+        pointerEvents="none"
       />
-      <View
-        style={[
-          styles.charBody,
-          {
-            width: headSize * 0.75,
-            height: bodyHeight,
-            backgroundColor: energyColor,
-            opacity: bodyOpacity * 0.85,
-            borderRadius: 8,
-            transform: [{ scaleY: streakDay < 3 ? 0.85 : 1 }],
-          },
-        ]}
-      />
-      {streakDay >= 7 && (
-        <View style={styles.charAura}>
-          <Ionicons name="sparkles" size={14} color={Colors.shrineGold} />
+
+      {/* Streak badge floating on scene */}
+      <View style={styles.sceneBadge}>
+        <Text style={styles.sceneBadgeNumber}>{streak}</Text>
+        <Text style={styles.sceneBadgeLabel}>
+          {streak === 1 ? "day" : "days"}
+        </Text>
+      </View>
+
+      {/* Checkpoint indicator */}
+      {scene.showCheckpoint && !scene.showShrine && (
+        <View style={styles.checkpointBadge}>
+          <Ionicons name="flag" size={11} color={Colors.white} />
+          <Text style={styles.checkpointBadgeText}>Checkpoint</Text>
         </View>
       )}
+
+      {/* Shrine indicator */}
+      {scene.showShrine && (
+        <View style={styles.shrineBadge}>
+          <Ionicons name="sparkles" size={11} color={Colors.shrineGold} />
+          <Text style={styles.shrineBadgeText}>Shrine Reached</Text>
+        </View>
+      )}
+
+      {/* Atmospheric label */}
+      <View style={styles.sceneLabel}>
+        <Text style={styles.sceneLabelText}>{scene.streakLabel}</Text>
+      </View>
     </View>
   );
 }
 
+// ─── Main Journey Screen ──────────────────────────────────────────────────────
 export default function JourneyScreen() {
   const insets = useSafeAreaInsets();
   const { user, canCheckInToday, checkInSuccess, checkInRelapse } = useUser();
   const [showConfirmRelapse, setShowConfirmRelapse] = useState(false);
-  const [checkedInToday, setCheckedInToday] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebMsg, setCelebMsg] = useState("");
 
-  const celebScale = useSharedValue(0.8);
   const celebOpacity = useSharedValue(0);
+  const celebY = useSharedValue(20);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   if (!user) return null;
 
   const streak = user.currentStreak;
-  const journeyPos = Math.min(streak, 7);
+  const todayChecked = !canCheckInToday;
 
   async function handleYes() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await checkInSuccess();
-    setCheckedInToday(true);
+
+    const newStreak = streak + 1;
+    const msg =
+      newStreak >= 7
+        ? "You have reclaimed a part of yourself."
+        : newStreak === 3
+        ? "Checkpoint reached. Freeze point earned."
+        : "You stayed strong today.";
+    setCelebMsg(msg);
     setShowCelebration(true);
-    celebOpacity.value = withTiming(1, { duration: 300 });
-    celebScale.value = withSequence(
-      withSpring(1.1, { damping: 10 }),
-      withDelay(2000, withTiming(0.8, { duration: 400 }))
-    );
+
     celebOpacity.value = withSequence(
       withTiming(1, { duration: 300 }),
-      withDelay(2000, withTiming(0, { duration: 400 }))
+      withDelay(2200, withTiming(0, { duration: 400 }))
     );
-    setTimeout(() => setShowCelebration(false), 2800);
+    celebY.value = withSequence(
+      withSpring(0, { damping: 14 }),
+      withDelay(2200, withTiming(20, { duration: 400 }))
+    );
+    setTimeout(() => setShowCelebration(false), 3000);
   }
 
   function handleNoPress() {
@@ -209,25 +214,23 @@ export default function JourneyScreen() {
 
   const celebStyle = useAnimatedStyle(() => ({
     opacity: celebOpacity.value,
-    transform: [{ scale: celebScale.value }],
+    transform: [{ translateY: celebY.value }],
   }));
-
-  const todayChecked = !canCheckInToday;
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: topPad + 16, paddingBottom: 120 },
+          { paddingTop: topPad, paddingBottom: 120 },
         ]}
       >
+        {/* ── Header ── */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.screenTitle}>Your Journey</Text>
-            <Text style={styles.screenSubtitle}>Return to the path. Reclaim yourself.</Text>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.screenTitle}>Reclaim Yourself</Text>
+            <Text style={styles.screenSubtitle}>Return to the path. One day at a time.</Text>
           </View>
           {user.freezePoints > 0 && (
             <View style={styles.freezeBadge}>
@@ -237,103 +240,63 @@ export default function JourneyScreen() {
           )}
         </View>
 
-        <View style={styles.streakCard}>
-          <LinearGradient
-            colors={streak >= 7 ? ["#C4962A", "#D4AF37"] : streak >= 3 ? ["#7A9970", "#5A7A5A"] : ["#C4956A", "#B07050"]}
-            style={styles.streakGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.streakLeft}>
-              <Text style={styles.streakNumber}>{streak}</Text>
-              <Text style={styles.streakLabel}>
-                {streak === 1 ? "Day Resisted" : "Days Resisted"}
+        {/* ── Illustrated Journey Scene ── */}
+        <JourneyScene streak={streak} />
+
+        {/* ── Freeze info strip ── */}
+        {user.freezePoints > 0 && (
+          <View style={styles.freezeStrip}>
+            <Ionicons name="snow-outline" size={14} color={Colors.sky} />
+            <Text style={styles.freezeStripText}>
+              {user.freezePoints} freeze {user.freezePoints === 1 ? "point" : "points"} — protects your streak if you miss a day.
+            </Text>
+          </View>
+        )}
+
+        {/* ── Daily Check-in Card ── */}
+        <View style={styles.checkInCard}>
+          <Text style={styles.checkInHeading}>Daily Check-in</Text>
+
+          {todayChecked ? (
+            <View style={styles.checkedState}>
+              <View style={styles.checkedIconWrap}>
+                <Ionicons name="checkmark-circle" size={40} color={Colors.sage} />
+              </View>
+              <Text style={styles.checkedTitle}>
+                {streak > 0 ? "You stayed strong today." : "You've logged today."}
               </Text>
-              {streak >= 3 && (
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelText}>
-                    {streak >= 7 ? "Shrine Reached" : streak >= 3 ? "Checkpoint" : "Level 1"}
+              <Text style={styles.checkedSub}>Come back tomorrow.</Text>
+              {user.longestStreak > 0 && (
+                <View style={styles.bestRow}>
+                  <Ionicons name="trophy-outline" size={13} color={Colors.primary} />
+                  <Text style={styles.bestText}>
+                    Best streak: {user.longestStreak} {user.longestStreak === 1 ? "day" : "days"}
                   </Text>
                 </View>
               )}
             </View>
-            <CharacterFigure streakDay={streak} />
-          </LinearGradient>
-        </View>
-
-        {user.freezePoints > 0 && (
-          <View style={styles.freezeInfoCard}>
-            <Ionicons name="snow-outline" size={16} color={Colors.sky} />
-            <View style={styles.freezeInfoText}>
-              <Text style={styles.freezeInfoTitle}>
-                {user.freezePoints} Freeze {user.freezePoints === 1 ? "Point" : "Points"} Available
-              </Text>
-              <Text style={styles.freezeInfoDesc}>
-                Protects your streak if you miss a day. Used automatically.
-              </Text>
-            </View>
-          </View>
-        )}
-
-        <Text style={styles.sectionTitle}>The Path</Text>
-        <View style={styles.pathCard}>
-          <View style={styles.levelRow}>
-            <View style={[styles.levelMarker, { backgroundColor: Colors.sagePale }]}>
-              <Text style={styles.levelMarkerText}>Level 1: Days 0–3</Text>
-            </View>
-            <View style={[styles.levelMarker, { backgroundColor: Colors.goldPale }]}>
-              <Text style={styles.levelMarkerText}>Level 2: Days 4–7</Text>
-            </View>
-          </View>
-          <View style={styles.pathRow}>
-            {PATH_NODES.map((node, i) => (
-              <React.Fragment key={node.day}>
-                <PathNode
-                  node={node}
-                  isActive={journeyPos === node.day && node.day !== 0}
-                  isCompleted={journeyPos > node.day || (node.day === 0)}
-                />
-                {i < PATH_NODES.length - 1 && (
-                  <View
-                    style={[
-                      styles.pathLine,
-                      journeyPos > node.day && styles.pathLineDone,
-                      i === 2 && styles.pathLineDivider,
-                    ]}
-                  />
-                )}
-              </React.Fragment>
-            ))}
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>Daily Check-in</Text>
-        <View style={styles.checkInCard}>
-          {todayChecked ? (
-            <View style={styles.checkedInState}>
-              <View style={styles.checkedIcon}>
-                <Ionicons name="checkmark-circle" size={36} color={Colors.sage} />
-              </View>
-              <Text style={styles.checkedTitle}>
-                {streak > 0 ? "You stayed strong today." : "You've logged in today."}
-              </Text>
-              <Text style={styles.checkedSubtitle}>Come back tomorrow to continue.</Text>
-              {user.longestStreak > 0 && (
-                <Text style={styles.bestStreak}>
-                  Best: {user.longestStreak} {user.longestStreak === 1 ? "day" : "days"}
-                </Text>
-              )}
-            </View>
           ) : (
             <>
-              <Text style={styles.checkInTitle}>Did you resist your bad habit today?</Text>
-              <Text style={styles.checkInStreak}>
-                Current: {streak} {streak === 1 ? "day" : "days"} resisted
-              </Text>
+              <View style={styles.streakRow}>
+                <Text style={styles.streakBig}>{streak}</Text>
+                <View style={styles.streakMeta}>
+                  <Text style={styles.streakUnit}>
+                    {streak === 1 ? "Day" : "Days"} Resisted
+                  </Text>
+                  {user.longestStreak > 0 && (
+                    <Text style={styles.streakBest}>
+                      Best: {user.longestStreak} {user.longestStreak === 1 ? "day" : "days"}
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              <Text style={styles.checkInQ}>Did you resist your bad habit today?</Text>
 
               <Pressable
                 style={({ pressed }) => [styles.yesBtn, pressed && styles.yesBtnPressed]}
                 onPress={handleYes}
+                testID="btn-yes"
               >
                 <LinearGradient
                   colors={[Colors.sage, Colors.sageDark]}
@@ -349,37 +312,84 @@ export default function JourneyScreen() {
               <Pressable
                 style={({ pressed }) => [styles.noBtn, pressed && styles.noBtnPressed]}
                 onPress={handleNoPress}
+                testID="btn-no"
               >
-                <Ionicons name="refresh-outline" size={17} color={Colors.textLight} />
+                <Ionicons name="refresh-outline" size={16} color={Colors.textLight} />
                 <Text style={styles.noBtnText}>No, I stumbled</Text>
               </Pressable>
 
               <Text style={styles.noBtnHint}>
-                A stumble does not erase your progress. Return to the path.
+                A stumble does not erase your progress.
               </Text>
             </>
           )}
         </View>
+
+        {/* ── Milestone progress bar ── */}
+        <View style={styles.milestoneCard}>
+          <View style={styles.milestoneRow}>
+            {[
+              { day: 1, label: "Day 1", icon: "footsteps-outline" as const },
+              { day: 3, label: "Checkpoint", icon: "flag" as const },
+              { day: 7, label: "Shrine", icon: "sparkles" as const },
+            ].map((m, i) => {
+              const done = streak >= m.day;
+              return (
+                <View key={m.day} style={styles.milestoneItem}>
+                  <View
+                    style={[
+                      styles.milestoneCircle,
+                      done ? styles.milestoneCircleDone : undefined,
+                      m.day === 7 && done ? styles.milestoneCircleShrine : undefined,
+                    ]}
+                  >
+                    <Ionicons
+                      name={m.icon}
+                      size={14}
+                      color={done ? Colors.white : Colors.textMuted}
+                    />
+                  </View>
+                  <Text
+                    style={[
+                      styles.milestoneLabel,
+                      done && styles.milestoneLabelDone,
+                    ]}
+                  >
+                    {m.label}
+                  </Text>
+                  {i < 2 && (
+                    <View
+                      style={[
+                        styles.milestoneLine,
+                        done && streak >= (i === 0 ? 3 : 7)
+                          ? styles.milestoneLineDone
+                          : undefined,
+                      ]}
+                    />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
 
+      {/* ── Celebration toast ── */}
       {showCelebration && (
-        <Animated.View style={[styles.celebOverlay, celebStyle]}>
+        <Animated.View style={[styles.celebToast, celebStyle]}>
           <LinearGradient
             colors={[Colors.sage, Colors.sageDark]}
-            style={styles.celebCard}
+            style={styles.celebGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           >
-            <Ionicons name="sparkles" size={28} color={Colors.goldLight} />
-            <Text style={styles.celebText}>
-              {user.currentStreak >= 7
-                ? "You have reclaimed a part of yourself."
-                : user.currentStreak >= 3
-                ? "Checkpoint reached. A freeze point earned."
-                : "You stayed strong today."}
-            </Text>
+            <Ionicons name="sparkles" size={18} color={Colors.goldLight} />
+            <Text style={styles.celebText}>{celebMsg}</Text>
           </LinearGradient>
         </Animated.View>
       )}
 
+      {/* ── Relapse confirmation modal ── */}
       <Modal
         visible={showConfirmRelapse}
         transparent
@@ -388,10 +398,10 @@ export default function JourneyScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Ionicons name="refresh-circle-outline" size={40} color={Colors.amber} />
+            <Ionicons name="refresh-circle-outline" size={44} color={Colors.amber} />
             <Text style={styles.modalTitle}>Are you sure?</Text>
             <Text style={styles.modalBody}>
-              This will reset your streak to 0. Your freeze points will not protect you here.
+              This will reset your streak to 0. Freeze points will not protect against an active reset.
             </Text>
             <View style={styles.modalBtns}>
               <Pressable
@@ -405,7 +415,7 @@ export default function JourneyScreen() {
               </Pressable>
             </View>
             <Text style={styles.modalNote}>
-              A stumble does not erase your progress. You can always return.
+              A stumble does not erase your progress. Return to the path.
             </Text>
           </View>
         </View>
@@ -414,27 +424,34 @@ export default function JourneyScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingHorizontal: 20,
-    gap: 16,
+    gap: 0,
   },
+
+  // Header
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  headerTextBlock: {
+    flex: 1,
+    gap: 2,
   },
   screenTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 28,
+    fontSize: 24,
     color: Colors.textDark,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   screenSubtitle: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textLight,
-    marginTop: 2,
   },
   freezeBadge: {
     flexDirection: "row",
@@ -450,230 +467,183 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.sky,
   },
-  streakCard: {
-    borderRadius: 20,
+
+  // Journey Scene
+  sceneContainer: {
+    width: SCREEN_WIDTH,
+    height: SCENE_HEIGHT,
     overflow: "hidden",
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 3,
+    position: "relative",
+    marginBottom: 0,
   },
-  streakGradient: {
+  sceneImage: {
+    width: "100%",
+    height: "100%",
+  },
+  shrineOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  shrineOverlayImage: {
+    width: "100%",
+    height: "100%",
+  },
+  sceneBottomFade: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+  sceneBadge: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    backgroundColor: "rgba(44, 26, 14, 0.52)",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  sceneBadgeNumber: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 28,
+    color: Colors.white,
+    lineHeight: 32,
+    letterSpacing: -1,
+  },
+  sceneBadgeLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.8)",
+  },
+  checkpointBadge: {
+    position: "absolute",
+    top: 16,
+    left: 16,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-  },
-  streakLeft: {
-    gap: 4,
-  },
-  streakNumber: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 52,
-    color: Colors.white,
-    lineHeight: 56,
-    letterSpacing: -2,
-  },
-  streakLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
-    color: "rgba(255,255,255,0.85)",
-  },
-  levelBadge: {
-    marginTop: 6,
-    backgroundColor: "rgba(255,255,255,0.22)",
-    borderRadius: 8,
+    gap: 5,
+    backgroundColor: Colors.checkpointBlue,
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: "flex-start",
+    paddingVertical: 6,
   },
-  levelText: {
+  checkpointBadgeText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
     color: Colors.white,
   },
-  characterContainer: {
-    alignItems: "center",
-    justifyContent: "flex-end",
-    height: 80,
-    position: "relative",
-  },
-  characterGlow: {
+  shrineBadge: {
     position: "absolute",
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: Colors.goldLight,
-    top: -5,
-  },
-  charHead: {
-    marginBottom: 3,
-  },
-  charBody: {},
-  charAura: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-  },
-  freezeInfoCard: {
+    top: 16,
+    left: 16,
     flexDirection: "row",
-    gap: 12,
-    backgroundColor: Colors.skyPale,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: "flex-start",
-    borderWidth: 1,
-    borderColor: Colors.skyLight,
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(212, 175, 55, 0.9)",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  freezeInfoText: {
-    flex: 1,
-    gap: 2,
-  },
-  freezeInfoTitle: {
+  shrineBadgeText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
-    color: Colors.sky,
+    fontSize: 11,
+    color: Colors.textDark,
   },
-  freezeInfoDesc: {
+  sceneLabel: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
+    right: 80,
+  },
+  sceneLabelText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: "rgba(255,255,255,0.9)",
+    textShadowColor: "rgba(0,0,0,0.4)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+
+  // Freeze strip
+  freezeStrip: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    backgroundColor: Colors.skyPale,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.skyLight,
+  },
+  freezeStripText: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
-    color: Colors.textLight,
-    lineHeight: 17,
+    color: Colors.sky,
+    flex: 1,
   },
-  sectionTitle: {
+
+  // Check-in card
+  checkInCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 22,
+    padding: 20,
+    gap: 14,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  checkInHeading: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: Colors.textMuted,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  streakRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  streakBig: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 56,
+    color: Colors.textDark,
+    lineHeight: 60,
+    letterSpacing: -2,
+  },
+  streakMeta: {
+    gap: 2,
+  },
+  streakUnit: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 16,
     color: Colors.textDark,
   },
-  pathCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 16,
-    gap: 12,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  levelRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  levelMarker: {
-    flex: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignItems: "center",
-  },
-  levelMarkerText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 10,
-    color: Colors.textMedium,
-  },
-  pathRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  nodeWrapper: {
-    alignItems: "center",
-    gap: 4,
-  },
-  node: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  nodeShrine: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  nodeCheckpoint: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-  },
-  nodeActive: {
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  nodeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-  },
-  nodeLabel: {
+  streakBest: {
     fontFamily: "Inter_400Regular",
-    fontSize: 9,
-    color: Colors.textMuted,
-    textAlign: "center",
-  },
-  nodeLabelActive: {
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.primary,
-  },
-  nodeLabelDone: {
-    color: Colors.sage,
-  },
-  nodeLabelShrine: {
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.shrineGold,
-  },
-  pathLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: Colors.border,
-    marginBottom: 14,
-    marginHorizontal: -2,
-  },
-  pathLineDone: {
-    backgroundColor: Colors.sage,
-  },
-  pathLineDivider: {
-    borderStyle: "dashed",
-  },
-  checkInCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    gap: 14,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  checkInTitle: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 17,
-    color: Colors.textDark,
-    lineHeight: 24,
-  },
-  checkInStreak: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     color: Colors.textLight,
   },
+  checkInQ: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 16,
+    color: Colors.textDark,
+    lineHeight: 23,
+  },
   yesBtn: {
-    borderRadius: 14,
+    borderRadius: 15,
     overflow: "hidden",
-    elevation: 2,
     shadowColor: Colors.sage,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowRadius: 10,
+    elevation: 3,
   },
   yesBtnPressed: {
     transform: [{ scale: 0.97 }],
@@ -718,49 +688,120 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: "center",
     fontStyle: "italic",
-    lineHeight: 16,
   },
-  checkedInState: {
+  checkedState: {
     alignItems: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
-  checkedIcon: {},
+  checkedIconWrap: {},
   checkedTitle: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     color: Colors.textDark,
     textAlign: "center",
   },
-  checkedSubtitle: {
+  checkedSub: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
     color: Colors.textLight,
     textAlign: "center",
   },
-  bestStreak: {
+  bestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+  },
+  bestText: {
     fontFamily: "Inter_500Medium",
     fontSize: 12,
     color: Colors.primary,
-    marginTop: 4,
   },
-  celebOverlay: {
+
+  // Milestone card
+  milestoneCard: {
+    backgroundColor: Colors.surface,
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  milestoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  milestoneItem: {
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+    position: "relative",
+  },
+  milestoneCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  milestoneCircleDone: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
+  },
+  milestoneCircleShrine: {
+    backgroundColor: Colors.shrineGold,
+    borderColor: Colors.shrineGold,
+  },
+  milestoneLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: "center",
+  },
+  milestoneLabelDone: {
+    fontFamily: "Inter_600SemiBold",
+    color: Colors.textDark,
+  },
+  milestoneLine: {
+    position: "absolute",
+    top: 17,
+    left: "55%",
+    right: "-55%",
+    height: 2,
+    backgroundColor: Colors.border,
+    zIndex: -1,
+  },
+  milestoneLineDone: {
+    backgroundColor: Colors.sage,
+  },
+
+  // Celebration toast
+  celebToast: {
     position: "absolute",
     bottom: 130,
-    left: 20,
-    right: 20,
-    borderRadius: 18,
+    left: 16,
+    right: 16,
+    borderRadius: 16,
     overflow: "hidden",
-    elevation: 10,
     shadowColor: Colors.sage,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.4,
     shadowRadius: 16,
+    elevation: 10,
   },
-  celebCard: {
+  celebGradient: {
     flexDirection: "row",
-    gap: 12,
-    padding: 18,
+    gap: 10,
+    padding: 16,
     alignItems: "center",
   },
   celebText: {
@@ -770,6 +811,8 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(44, 26, 14, 0.55)",

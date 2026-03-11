@@ -1,0 +1,87 @@
+I have created all my visual assets for the "Reclaim Yourself" app and I want you to write ALL the necessary code in one go.
+
+I will upload these PNG files into this chat:
+
+- arin-day0.png
+- arin-day1.png
+- arin-day3.png
+- arin-day7.png
+- path-bg.png
+- checkpoint-scene.png
+- shrine-scene.png
+
+YOUR TASK (ONE SHOT):
+
+1) PROJECT FILES FOR IMAGES
+- Create a new folder inside my project called `assets`.
+- Save each uploaded image file into that folder with the SAME filenames as above.
+- Use whatever import or public path style matches this React project (Vite/CRA/Next etc.), but keep it simple.
+
+2) JOURNEY SCREEN UI + LOGIC
+- Find the React component that renders my Journey tab (the main screen with "Your Journey" and the daily check-in).
+- Replace the current plain / techy progress UI at the top with an illustrated, game-like view using the uploaded images.
+- Keep my existing daily check-in card and streak logic working exactly as it is.
+
+VISUAL BEHAVIOUR:
+- At the top of the Journey tab, show `path-bg.png` as a large background area, full width on mobile.
+- Overlay the character image on top of the path.
+- Choose the character image based on the current streak (number of consecutive days resisted):
+  - Streak = 0  → use `arin-day0.png`
+  - Streak = 1–2 → use `arin-day1.png`
+  - Streak = 3–6 → use `arin-day3.png`
+  - Streak ≥ 7  → use `arin-day7.png`
+- As streak increases, move the character smoothly from left to right along the path:
+  - Day 0: near the very left.
+  - Day 1–2: slightly forward.
+  - Day 3–6: middle/right area.
+  - Day 7+: near the shrine at the far right.
+- You can implement this as a simple mapping from streak ranges to a CSS translateX value or flex alignment.
+- Use a small animation (300–500ms ease-out) so the character slides into the new position when the streak changes.
+
+CHECKPOINT + SHRINE:
+- When streak ≥ 3, show `checkpoint-scene.png` somewhere around the middle of the path as a visible checkpoint marker.
+- When streak ≥ 7, show `shrine-scene.png` near the far right of the path as the final destination.
+- It’s fine if these are small overlay images or elements near the path; just make sure they look integrated in the scene.
+
+STREAK CONNECTION:
+- Use the existing streak state from my app (do NOT create a separate “fake” streak).
+- The same streak value that is already displayed as “X Day(s) Resisted” should drive:
+  - which character image is shown,
+  - the character’s position,
+  - whether the checkpoint and shrine overlays appear.
+- The daily check-in buttons (“Yes, I stayed strong”, “No, I stumbled”) must keep updating the streak exactly as before.
+- Do not remove or change the freeze-point logic if it already exists.
+
+LAYOUT:
+- Place the illustrated path+character area at the very top of the Journey screen.
+- Below that, keep:
+  - the card that shows the Day Resisted number,
+  - “Daily Check-in” section,
+  - the two answer buttons.
+- Keep the app name and branding exactly as “Reclaim Yourself”.
+- Make sure the layout is mobile-first and looks good on a phone.
+
+IMPLEMENTATION DETAILS:
+- Use React best practices.
+- Import images near the top of the Journey component, for example:
+    import arinDay0 from "./assets/arin-day0.png";
+    ...
+  or use public URLs if this project uses a `public` folder.
+- Implement a small helper function that, given `streak`, returns:
+  - the correct character image,
+  - the correct `translateX` (or flex position),
+  - booleans for `showCheckpoint` and `showShrine`.
+- Use simple CSS or Tailwind for positioning; do NOT introduce a heavy game engine.
+
+DELIVERABLES:
+- Write ALL the code needed in one answer:
+  1) the updated Journey component file (full content),
+  2) any new CSS/Tailwind classes or styles you add,
+  3) any other file you touch (for example if you introduce a helper or constants file).
+- For each code block, clearly label which file it belongs to, e.g.:
+// File: src/screens/Journey.tsx
+// File: src/styles/Journey.css
+
+Important:
+- Do not delete or break any existing features (login, storage, streak, freeze points).
+- Only modify what is necessary to integrate the new assets and visuals.
