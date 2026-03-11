@@ -236,9 +236,12 @@ export default function JourneyScreen() {
   const [showConfirmRelapse, setShowConfirmRelapse] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebMsg, setCelebMsg] = useState("");
-
   const celebOpacity = useSharedValue(0);
   const celebY = useSharedValue(20);
+  const celebStyle = useAnimatedStyle(() => ({
+    opacity: celebOpacity.value,
+    transform: [{ translateY: celebY.value }],
+  }));
 
   if (!user) return null;
 
@@ -280,11 +283,6 @@ export default function JourneyScreen() {
     setShowConfirmRelapse(false);
     await checkInRelapse();
   }
-
-  const celebStyle = useAnimatedStyle(() => ({
-    opacity: celebOpacity.value,
-    transform: [{ translateY: celebY.value }],
-  }));
 
   const topPad = Platform.OS === "web" ? 20 : insets.top + 8;
 
