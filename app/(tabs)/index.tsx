@@ -371,8 +371,6 @@ export default function JourneyScreen() {
     await AsyncStorage.setItem(BLESSING_KEY_PREFIX + user.username, "claimed");
     setBlessingClaimed(true);
     setShowLevelCompleteModal(false);
-    // Show "Move to Level 2" prompt after claiming L1 blessing
-    setShowMoveToLevel2Modal(true);
   }
 
   async function handleMoveToLevel2() {
@@ -409,8 +407,8 @@ export default function JourneyScreen() {
         dayIndex={displayDayIndex}
         streak={streak}
         level={displayLevel}
-        blessingClaimed={blessingClaimed}
-        l2BlessingClaimed={l2BlessingClaimed}
+        blessingClaimed={showLevelCompleteModal || blessingClaimed}
+        l2BlessingClaimed={showLevel2CompleteModal || l2BlessingClaimed}
       />
 
       {/* Preview mode controls */}
@@ -694,44 +692,28 @@ export default function JourneyScreen() {
         </View>
       </Modal>
 
-      {/* ── Move to Level 2 modal ── */}
-      <Modal
-        visible={showMoveToLevel2Modal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {}}
-      >
-        <View style={styles.levelCompleteOverlay}>
-          <View style={styles.moveToL2Card}>
-            <View style={styles.moveToL2IconRow}>
-              <Ionicons name="water" size={32} color="#4AA8D8" />
-            </View>
-            <Text style={styles.moveToL2Subtitle}>A new challenge awaits</Text>
-            <Text style={styles.moveToL2Title}>Level Two</Text>
-            <View style={styles.moveToL2Divider} />
-            <Text style={styles.moveToL2Body}>
-              You have conquered the path.{"\n"}Now cross the water.{"\n"}10 days stand between you and mastery.
-            </Text>
-            <Pressable
-              style={({ pressed }) => [
-                styles.claimBtn,
-                pressed && styles.claimBtnPressed,
-              ]}
-              onPress={handleMoveToLevel2}
-            >
-              <LinearGradient
-                colors={["#2980B9", "#1A5276"]}
-                style={styles.claimBtnGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name="arrow-forward-circle-outline" size={18} color="#fff" />
-                <Text style={styles.claimBtnText}>Begin Level Two</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      {/* ── Begin Level 2 floating button (top-right, shown after L1 blessing) ── */}
+      {(blessingClaimed && currentLevel === 1 && !showLevelCompleteModal) || showMoveToLevel2Modal ? (
+        <Pressable
+          style={({ pressed }) => [
+            styles.beginL2Btn,
+            { top: insets.top + (Platform.OS === "web" ? 68 : 72) },
+            pressed && styles.beginL2BtnPressed,
+          ]}
+          onPress={handleMoveToLevel2}
+        >
+          <LinearGradient
+            colors={["#2980B9", "#1A5276"]}
+            style={styles.beginL2Gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="water-outline" size={13} color="#fff" />
+            <Text style={styles.beginL2Text}>Begin L2</Text>
+            <Ionicons name="arrow-forward" size={13} color="#fff" />
+          </LinearGradient>
+        </Pressable>
+      ) : null}
 
       {/* ── Level Two Complete modal ── */}
       <Modal
@@ -1432,7 +1414,39 @@ const styles = StyleSheet.create({
     borderColor: "#2980B9",
   },
 
-  // Move to Level 2 modal
+  // Small floating "Begin L2" button
+  beginL2Btn: {
+    position: "absolute",
+    right: 16,
+    zIndex: 200,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#2980B9",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  beginL2BtnPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.96 }],
+  },
+  beginL2Gradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  beginL2Text: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#fff",
+    letterSpacing: 0.3,
+  },
+
+  // Move to Level 2 modal (kept for style references)
   moveToL2Card: {
     backgroundColor: "#0A1628",
     borderRadius: 28,
