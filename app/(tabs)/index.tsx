@@ -279,6 +279,7 @@ export default function JourneyScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebMsg, setCelebMsg] = useState("");
   const [previewDay, setPreviewDay] = useState<number | null>(null);
+  const [previewLevel, setPreviewLevel] = useState<number | null>(null);
   const [titleTapCount, setTitleTapCount] = useState(0);
   const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
   const [showMoveToLevel2Modal, setShowMoveToLevel2Modal] = useState(false);
@@ -308,7 +309,8 @@ export default function JourneyScreen() {
   const streak = user.currentStreak;
   const journeyPos = user.journeyPosition ?? 0;
   const currentLevel = user.currentLevel ?? 1;
-  const maxDaysForLevel = currentLevel === 2 ? 10 : 7;
+  const displayLevel = previewLevel ?? currentLevel;
+  const maxDaysForLevel = displayLevel === 2 ? 10 : 7;
   const todayChecked = !canCheckInToday;
   const displayDayIndex = previewDay !== null ? previewDay : journeyPos;
 
@@ -317,7 +319,13 @@ export default function JourneyScreen() {
     setTitleTapCount(next);
     if (next >= 5) {
       setTitleTapCount(0);
-      setPreviewDay(previewDay === null ? 0 : null);
+      if (previewDay === null) {
+        setPreviewDay(0);
+        setPreviewLevel(currentLevel);
+      } else {
+        setPreviewDay(null);
+        setPreviewLevel(null);
+      }
     }
   }
 
@@ -400,32 +408,86 @@ export default function JourneyScreen() {
       <JourneyScene
         dayIndex={displayDayIndex}
         streak={streak}
-        level={currentLevel}
+        level={displayLevel}
         blessingClaimed={blessingClaimed}
         l2BlessingClaimed={l2BlessingClaimed}
       />
 
       {/* Preview mode controls */}
       {previewDay !== null && (
-        <View style={styles.previewBar}>
-          <Pressable
-            style={styles.previewArrow}
-            onPress={() => setPreviewDay(Math.max(0, previewDay - 1))}
-          >
-            <Ionicons name="chevron-back" size={18} color="#fff" />
-          </Pressable>
-          <View style={styles.previewLabel}>
-            <Text style={styles.previewLabelText}>Preview — Day {previewDay} / {maxDaysForLevel}</Text>
+        <View style={styles.previewPanel}>
+          {/* Row 1: day navigation */}
+          <View style={styles.previewNavRow}>
+            <Pressable
+              style={styles.previewArrow}
+              onPress={() => setPreviewDay(Math.max(0, previewDay - 1))}
+            >
+              <Ionicons name="chevron-back" size={18} color="#fff" />
+            </Pressable>
+            <View style={styles.previewLabel}>
+              <Text style={styles.previewLabelText}>
+                L{displayLevel} · Day {previewDay} / {maxDaysForLevel}
+              </Text>
+            </View>
+            <Pressable
+              style={styles.previewArrow}
+              onPress={() => setPreviewDay(Math.min(maxDaysForLevel, previewDay + 1))}
+            >
+              <Ionicons name="chevron-forward" size={18} color="#fff" />
+            </Pressable>
           </View>
-          <Pressable
-            style={styles.previewArrow}
-            onPress={() => setPreviewDay(Math.min(maxDaysForLevel, previewDay + 1))}
-          >
-            <Ionicons name="chevron-forward" size={18} color="#fff" />
-          </Pressable>
-          <Pressable style={styles.previewExit} onPress={() => setPreviewDay(null)}>
-            <Text style={styles.previewExitText}>Exit</Text>
-          </Pressable>
+
+          {/* Row 2: level toggle + modal test buttons */}
+          <View style={styles.previewActionsRow}>
+            <Pressable
+              style={[
+                styles.previewChip,
+                displayLevel === 1 ? styles.previewChipActive : styles.previewChipInactive,
+              ]}
+              onPress={() => {
+                setPreviewLevel(1);
+                setPreviewDay(0);
+              }}
+            >
+              <Text style={styles.previewChipText}>Lv 1</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.previewChip,
+                displayLevel === 2 ? styles.previewChipActive : styles.previewChipInactive,
+              ]}
+              onPress={() => {
+                setPreviewLevel(2);
+                setPreviewDay(0);
+              }}
+            >
+              <Text style={styles.previewChipText}>Lv 2</Text>
+            </Pressable>
+            <Pressable
+              style={styles.previewChip}
+              onPress={() => setShowLevelCompleteModal(true)}
+            >
+              <Text style={styles.previewChipText}>L1 Blessing</Text>
+            </Pressable>
+            <Pressable
+              style={styles.previewChip}
+              onPress={() => setShowMoveToLevel2Modal(true)}
+            >
+              <Text style={styles.previewChipText}>→ Lv2</Text>
+            </Pressable>
+            <Pressable
+              style={styles.previewChip}
+              onPress={() => setShowLevel2CompleteModal(true)}
+            >
+              <Text style={styles.previewChipText}>L2 Blessing</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.previewChip, styles.previewChipExit]}
+              onPress={() => { setPreviewDay(null); setPreviewLevel(null); }}
+            >
+              <Text style={styles.previewChipText}>Exit</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -476,7 +538,7 @@ export default function JourneyScreen() {
                   styles.dayDot,
                   journeyPos >= day && styles.dayDotActive,
                   day === 3 && styles.dayDotCheckpoint,
-                  currentLevel === 2 && day === 10 && styles.dayDotShrine,
+                  displayLevel === 2 && day === 10 && styles.dayDotShrine,
                 ]}
               >
                 <Text style={[styles.dayDotText, maxDaysForLevel === 10 && styles.dayDotTextSmall]}>{day}</Text>
@@ -500,7 +562,7 @@ export default function JourneyScreen() {
           contentContainerStyle={styles.milestoneScrollContent}
           scrollEventThrottle={16}
         >
-          {(currentLevel === 2
+          {(displayLevel === 2
             ? [
                 { day: 1, label: "Day 1", icon: "water-outline" as const },
                 { day: 3, label: "Checkpoint", icon: "flag" as const },
@@ -514,7 +576,7 @@ export default function JourneyScreen() {
               ]
           ).map((m) => {
             const done = journeyPos >= m.day;
-            const isFinal = currentLevel === 2 ? m.day === 10 : m.day === 7;
+            const isFinal = displayLevel === 2 ? m.day === 10 : m.day === 7;
             return (
               <View key={m.day} style={styles.milestoneItem}>
                 <View
@@ -1199,19 +1261,21 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  previewBar: {
+  previewPanel: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.65)",
+    backgroundColor: "rgba(0,0,0,0.75)",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    gap: 8,
+    gap: 6,
     zIndex: 100,
+  },
+  previewNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   previewArrow: {
     padding: 6,
@@ -1227,6 +1291,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.white,
     letterSpacing: 0.2,
+  },
+  previewActionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "center",
+  },
+  previewChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  previewChipActive: {
+    backgroundColor: "rgba(255,215,80,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,215,80,0.6)",
+  },
+  previewChipInactive: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  previewChipExit: {
+    backgroundColor: "rgba(255,80,80,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,80,80,0.4)",
+  },
+  previewChipText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: Colors.white,
   },
   previewExit: {
     paddingHorizontal: 10,
