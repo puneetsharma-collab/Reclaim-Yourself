@@ -48,20 +48,28 @@ export async function setCurrentUserId(id: string | null): Promise<void> {
   }
 }
 
+export function getMaxDaysForLevel(level: number): number {
+  return level === 2 ? 10 : 7;
+}
+
 export function applyCheckInSuccess(user: UserData): UserData {
   const newStreak = user.currentStreak + 1;
   const longestStreak = Math.max(newStreak, user.longestStreak);
-  const journeyPosition = Math.min(newStreak, 7);
+
+  // journeyPosition tracks days within the current level (not total streak)
+  const maxDays = getMaxDaysForLevel(user.currentLevel ?? 1);
+  const journeyPosition = Math.min((user.journeyPosition ?? 0) + 1, maxDays);
 
   const checkpointUnlocked = newStreak >= 3 ? true : user.checkpointUnlocked;
-  const shrineUnlocked = newStreak >= 7 ? true : user.shrineUnlocked;
+
+  // Shrine unlocked when level completion day is reached
+  const shrineUnlocked =
+    journeyPosition >= maxDays ? true : user.shrineUnlocked;
 
   let freezePoints = user.freezePoints;
   if (newStreak === 3 && !user.checkpointUnlocked) {
     freezePoints += 1;
   }
-
-  const currentLevel = newStreak <= 3 ? 1 : 2;
 
   return {
     ...user,
@@ -72,7 +80,6 @@ export function applyCheckInSuccess(user: UserData): UserData {
     checkpointUnlocked,
     shrineUnlocked,
     freezePoints,
-    currentLevel,
     journeyPosition,
     lastAppOpenDate: getTodayString(),
   };

@@ -32,8 +32,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 // ─── Asset imports ───────────────────────────────────────────────────────────
 
-// Level 1 images (Day 0–7)
-// When adding Level 2, create a new block below following the same pattern.
 const LEVEL_IMAGES: Record<number, Record<number, ImageSourcePropType>> = {
   1: {
     0: require("../../assets/images/l1-day0.png"),
@@ -45,66 +43,114 @@ const LEVEL_IMAGES: Record<number, Record<number, ImageSourcePropType>> = {
     6: require("../../assets/images/l1-day6.jpg"),
     7: require("../../assets/images/l1-day7.jpg"),
   },
-  // Level 2 images will go here:
-  // 2: {
-  //   0: require("../../assets/images/l2-day0.jpg"),
-  //   1: require("../../assets/images/l2-day1.jpg"),
-  //   ...
-  // },
+  2: {
+    0: require("../../assets/images/l2-day0.jpg"),
+    1: require("../../assets/images/l2-day1.jpg"),
+    2: require("../../assets/images/l2-day2.jpg"),
+    3: require("../../assets/images/l2-day3.jpg"),
+    4: require("../../assets/images/l2-day4.jpg"),
+    5: require("../../assets/images/l2-day5.jpg"),
+    6: require("../../assets/images/l2-day6.jpg"),
+    7: require("../../assets/images/l2-day7.jpg"),
+    8: require("../../assets/images/l2-day8.jpg"),
+    9: require("../../assets/images/l2-day9.jpg"),
+    10: require("../../assets/images/l2-day10.jpg"),
+  },
 };
 
 const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
 const IMG_L1_FINAL = require("../../assets/images/l1-final.jpg");
+const IMG_L2_FINAL = require("../../assets/images/l2-final.jpg");
 
 const BLESSING_KEY_PREFIX = "reclaim_l1_blessing_";
+const BLESSING_L2_KEY_PREFIX = "reclaim_l2_blessing_";
 
-// ─── Helper: derive scene state from streak + level ───────────────────────────
-function getSceneState(streak: number, level: number = 1): {
+// ─── Helper: derive scene state from dayIndex + level ────────────────────────
+function getSceneState(dayIndex: number, level: number = 1): {
   characterImage: ImageSourcePropType;
   showCheckpoint: boolean;
   showShrine: boolean;
   streakLabel: string;
 } {
   const levelImages = LEVEL_IMAGES[level] ?? LEVEL_IMAGES[1];
-  const dayIndex = Math.min(streak, 7);
-  const characterImage = levelImages[dayIndex] ?? levelImages[0];
+  const maxDay = level === 2 ? 10 : 7;
+  const clampedDay = Math.min(dayIndex, maxDay);
+  const characterImage = levelImages[clampedDay] ?? levelImages[0];
+
+  if (level === 2) {
+    return {
+      characterImage,
+      showCheckpoint: dayIndex >= 3,
+      showShrine: dayIndex >= 10,
+      streakLabel:
+        dayIndex === 0
+          ? "A new journey begins."
+          : dayIndex <= 2
+          ? "You have entered the water."
+          : dayIndex <= 9
+          ? "Swimming toward the horizon."
+          : "You have crossed the water.",
+    };
+  }
 
   return {
     characterImage,
-    showCheckpoint: streak >= 3,
-    showShrine: streak >= 7,
+    showCheckpoint: dayIndex >= 3,
+    showShrine: dayIndex >= 7,
     streakLabel:
-      streak === 0
+      dayIndex === 0
         ? "The path begins here."
-        : streak <= 2
+        : dayIndex <= 2
         ? "The journey has started."
-        : streak <= 6
+        : dayIndex <= 6
         ? "The checkpoint is behind you."
         : "You have reclaimed a part of yourself.",
   };
 }
 
 // ─── Animated scene component ─────────────────────────────────────────────────
-function JourneyScene({ streak, level, blessingClaimed }: { streak: number; level: number; blessingClaimed: boolean }) {
-  const scene = getSceneState(streak, level);
-  const displayImage = blessingClaimed && streak >= 7 ? IMG_L1_FINAL : scene.characterImage;
+function JourneyScene({
+  dayIndex,
+  streak,
+  level,
+  blessingClaimed,
+  l2BlessingClaimed,
+}: {
+  dayIndex: number;
+  streak: number;
+  level: number;
+  blessingClaimed: boolean;
+  l2BlessingClaimed: boolean;
+}) {
+  const scene = getSceneState(dayIndex, level);
+
+  let displayImage: ImageSourcePropType = scene.characterImage;
+  if (level === 2 && l2BlessingClaimed && dayIndex >= 10) {
+    displayImage = IMG_L2_FINAL;
+  } else if (level === 1 && blessingClaimed && dayIndex >= 7) {
+    displayImage = IMG_L1_FINAL;
+  }
+
   const fadeAnim = useSharedValue(1);
-  const prevStreakRef = useRef(streak);
-  const prevBlessingRef = useRef(blessingClaimed);
+  const prevDayRef = useRef(dayIndex);
+  const prevBlessingRef = useRef(blessingClaimed || l2BlessingClaimed);
+  const prevLevelRef = useRef(level);
 
   useEffect(() => {
-    const streakChanged = prevStreakRef.current !== streak;
-    const blessingChanged = prevBlessingRef.current !== blessingClaimed;
-    if (streakChanged || blessingChanged) {
-      prevStreakRef.current = streak;
-      prevBlessingRef.current = blessingClaimed;
-      // Fade out → swap → fade in
+    const changed =
+      prevDayRef.current !== dayIndex ||
+      prevLevelRef.current !== level ||
+      prevBlessingRef.current !== (blessingClaimed || l2BlessingClaimed);
+    if (changed) {
+      prevDayRef.current = dayIndex;
+      prevLevelRef.current = level;
+      prevBlessingRef.current = blessingClaimed || l2BlessingClaimed;
       fadeAnim.value = withSequence(
         withTiming(0, { duration: 200, easing: Easing.out(Easing.ease) }),
         withTiming(1, { duration: 400, easing: Easing.in(Easing.ease) })
       );
     }
-  }, [streak, blessingClaimed]);
+  }, [dayIndex, level, blessingClaimed, l2BlessingClaimed]);
 
   const animStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
@@ -120,7 +166,6 @@ function JourneyScene({ streak, level, blessingClaimed }: { streak: number; leve
           resizeMode="cover"
         />
       </Animated.View>
-
 
       {/* Streak badge floating on scene */}
       <View style={styles.sceneBadge}>
@@ -229,14 +274,17 @@ function CheckInContent({
 // ─── Main Journey Screen ──────────────────────────────────────────────────────
 export default function JourneyScreen() {
   const insets = useSafeAreaInsets();
-  const { user, canCheckInToday, checkInSuccess, checkInRelapse } = useUser();
+  const { user, canCheckInToday, checkInSuccess, checkInRelapse, moveToLevel2 } = useUser();
   const [showConfirmRelapse, setShowConfirmRelapse] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebMsg, setCelebMsg] = useState("");
   const [previewDay, setPreviewDay] = useState<number | null>(null);
   const [titleTapCount, setTitleTapCount] = useState(0);
   const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
+  const [showMoveToLevel2Modal, setShowMoveToLevel2Modal] = useState(false);
+  const [showLevel2CompleteModal, setShowLevel2CompleteModal] = useState(false);
   const [blessingClaimed, setBlessingClaimed] = useState(false);
+  const [l2BlessingClaimed, setL2BlessingClaimed] = useState(false);
   const celebOpacity = useSharedValue(0);
   const celebY = useSharedValue(20);
   const celebStyle = useAnimatedStyle(() => ({
@@ -249,14 +297,20 @@ export default function JourneyScreen() {
       AsyncStorage.getItem(BLESSING_KEY_PREFIX + user.username).then((val) => {
         if (val === "claimed") setBlessingClaimed(true);
       });
+      AsyncStorage.getItem(BLESSING_L2_KEY_PREFIX + user.username).then((val) => {
+        if (val === "claimed") setL2BlessingClaimed(true);
+      });
     }
   }, [user?.username]);
 
   if (!user) return null;
 
   const streak = user.currentStreak;
+  const journeyPos = user.journeyPosition ?? 0;
+  const currentLevel = user.currentLevel ?? 1;
+  const maxDaysForLevel = currentLevel === 2 ? 10 : 7;
   const todayChecked = !canCheckInToday;
-  const displayStreak = previewDay !== null ? previewDay : streak;
+  const displayDayIndex = previewDay !== null ? previewDay : journeyPos;
 
   function handleTitleTap() {
     const next = titleTapCount + 1;
@@ -272,9 +326,17 @@ export default function JourneyScreen() {
     await checkInSuccess();
 
     const newStreak = streak + 1;
+    const newJourneyPos = journeyPos + 1;
 
-    if (newStreak >= 7 && !blessingClaimed) {
+    // Level 1 completion
+    if (currentLevel === 1 && newJourneyPos >= 7 && !blessingClaimed) {
       setShowLevelCompleteModal(true);
+      return;
+    }
+
+    // Level 2 completion
+    if (currentLevel === 2 && newJourneyPos >= 10 && !l2BlessingClaimed) {
+      setShowLevel2CompleteModal(true);
       return;
     }
 
@@ -301,6 +363,21 @@ export default function JourneyScreen() {
     await AsyncStorage.setItem(BLESSING_KEY_PREFIX + user.username, "claimed");
     setBlessingClaimed(true);
     setShowLevelCompleteModal(false);
+    // Show "Move to Level 2" prompt after claiming L1 blessing
+    setShowMoveToLevel2Modal(true);
+  }
+
+  async function handleMoveToLevel2() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await moveToLevel2();
+    setShowMoveToLevel2Modal(false);
+  }
+
+  async function handleClaimL2Blessing() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await AsyncStorage.setItem(BLESSING_L2_KEY_PREFIX + user.username, "claimed");
+    setL2BlessingClaimed(true);
+    setShowLevel2CompleteModal(false);
   }
 
   function handleNoPress() {
@@ -320,7 +397,13 @@ export default function JourneyScreen() {
   return (
     <View style={styles.container}>
       {/* Full-screen journey scene */}
-      <JourneyScene streak={displayStreak} level={user.currentLevel ?? 1} blessingClaimed={blessingClaimed} />
+      <JourneyScene
+        dayIndex={displayDayIndex}
+        streak={streak}
+        level={currentLevel}
+        blessingClaimed={blessingClaimed}
+        l2BlessingClaimed={l2BlessingClaimed}
+      />
 
       {/* Preview mode controls */}
       {previewDay !== null && (
@@ -332,11 +415,11 @@ export default function JourneyScreen() {
             <Ionicons name="chevron-back" size={18} color="#fff" />
           </Pressable>
           <View style={styles.previewLabel}>
-            <Text style={styles.previewLabelText}>Preview — Day {previewDay}</Text>
+            <Text style={styles.previewLabelText}>Preview — Day {previewDay} / {maxDaysForLevel}</Text>
           </View>
           <Pressable
             style={styles.previewArrow}
-            onPress={() => setPreviewDay(Math.min(7, previewDay + 1))}
+            onPress={() => setPreviewDay(Math.min(maxDaysForLevel, previewDay + 1))}
           >
             <Ionicons name="chevron-forward" size={18} color="#fff" />
           </Pressable>
@@ -384,18 +467,19 @@ export default function JourneyScreen() {
           />
         </View>
 
-        {/* Journey Days Progress - show days 1-7 with checkpoint at day 3 */}
+        {/* Journey Days Progress - level-aware */}
         <View style={styles.journeyDaysContainer}>
-          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+          {Array.from({ length: maxDaysForLevel }, (_, i) => i + 1).map((day) => (
             <View key={day} style={styles.dayDotWrapper}>
               <View
                 style={[
                   styles.dayDot,
-                  streak >= day && styles.dayDotActive,
+                  journeyPos >= day && styles.dayDotActive,
                   day === 3 && styles.dayDotCheckpoint,
+                  currentLevel === 2 && day === 10 && styles.dayDotShrine,
                 ]}
               >
-                <Text style={styles.dayDotText}>{day}</Text>
+                <Text style={[styles.dayDotText, maxDaysForLevel === 10 && styles.dayDotTextSmall]}>{day}</Text>
               </View>
               {day === 3 && (
                 <View style={styles.checkpointLabel}>
@@ -416,19 +500,28 @@ export default function JourneyScreen() {
           contentContainerStyle={styles.milestoneScrollContent}
           scrollEventThrottle={16}
         >
-          {[
-            { day: 1, label: "Day 1", icon: "footsteps-outline" as const },
-            { day: 3, label: "Checkpoint", icon: "flag" as const },
-            { day: 7, label: "Shrine", icon: "sparkles" as const },
-          ].map((m, i) => {
-            const done = streak >= m.day;
+          {(currentLevel === 2
+            ? [
+                { day: 1, label: "Day 1", icon: "water-outline" as const },
+                { day: 3, label: "Checkpoint", icon: "flag" as const },
+                { day: 5, label: "Day 5", icon: "navigate-outline" as const },
+                { day: 10, label: "Horizon", icon: "sparkles" as const },
+              ]
+            : [
+                { day: 1, label: "Day 1", icon: "footsteps-outline" as const },
+                { day: 3, label: "Checkpoint", icon: "flag" as const },
+                { day: 7, label: "Shrine", icon: "sparkles" as const },
+              ]
+          ).map((m) => {
+            const done = journeyPos >= m.day;
+            const isFinal = currentLevel === 2 ? m.day === 10 : m.day === 7;
             return (
               <View key={m.day} style={styles.milestoneItem}>
                 <View
                   style={[
                     styles.milestoneCircle,
                     done ? styles.milestoneCircleDone : undefined,
-                    m.day === 7 && done ? styles.milestoneCircleShrine : undefined,
+                    isFinal && done ? styles.milestoneCircleShrine : undefined,
                   ]}
                 >
                   <Ionicons
@@ -527,6 +620,86 @@ export default function JourneyScreen() {
             >
               <LinearGradient
                 colors={["#D4AF37", "#B8860B"]}
+                style={styles.claimBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="gift-outline" size={18} color="#fff" />
+                <Text style={styles.claimBtnText}>Claim Your Blessing</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Move to Level 2 modal ── */}
+      <Modal
+        visible={showMoveToLevel2Modal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.levelCompleteOverlay}>
+          <View style={styles.moveToL2Card}>
+            <View style={styles.moveToL2IconRow}>
+              <Ionicons name="water" size={32} color="#4AA8D8" />
+            </View>
+            <Text style={styles.moveToL2Subtitle}>A new challenge awaits</Text>
+            <Text style={styles.moveToL2Title}>Level Two</Text>
+            <View style={styles.moveToL2Divider} />
+            <Text style={styles.moveToL2Body}>
+              You have conquered the path.{"\n"}Now cross the water.{"\n"}10 days stand between you and mastery.
+            </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.claimBtn,
+                pressed && styles.claimBtnPressed,
+              ]}
+              onPress={handleMoveToLevel2}
+            >
+              <LinearGradient
+                colors={["#2980B9", "#1A5276"]}
+                style={styles.claimBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="arrow-forward-circle-outline" size={18} color="#fff" />
+                <Text style={styles.claimBtnText}>Begin Level Two</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Level Two Complete modal ── */}
+      <Modal
+        visible={showLevel2CompleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.l2CompleteOverlay}>
+          <View style={styles.l2CompleteCard}>
+            <View style={styles.levelCompleteIconRow}>
+              <Ionicons name="water" size={16} color="#4AA8D8" />
+              <Ionicons name="sparkles" size={28} color={Colors.shrineGold} />
+              <Ionicons name="water" size={16} color="#4AA8D8" />
+            </View>
+            <Text style={styles.l2CompleteTitle}>Level Two</Text>
+            <Text style={styles.l2CompleteTitleAccent}>Complete</Text>
+            <View style={styles.l2CompleteDivider} />
+            <Text style={styles.levelCompleteBody}>
+              You have crossed the water.{"\n"}Your blessing awaits.
+            </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.claimBtn,
+                pressed && styles.claimBtnPressed,
+              ]}
+              onPress={handleClaimL2Blessing}
+            >
+              <LinearGradient
+                colors={["#D4AF37", "#2980B9"]}
                 style={styles.claimBtnGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -1154,5 +1327,116 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     letterSpacing: 0.3,
+  },
+
+  // Level 2 day dot adjustments
+  dayDotTextSmall: {
+    fontSize: 9,
+  },
+  dayDotShrine: {
+    backgroundColor: "#2980B9",
+    borderColor: "#2980B9",
+  },
+
+  // Move to Level 2 modal
+  moveToL2Card: {
+    backgroundColor: "#0A1628",
+    borderRadius: 28,
+    padding: 32,
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    maxWidth: 340,
+    borderWidth: 1.5,
+    borderColor: "rgba(74, 168, 216, 0.5)",
+    shadowColor: "#4AA8D8",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  moveToL2IconRow: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(74, 168, 216, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  moveToL2Subtitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "rgba(74, 168, 216, 0.7)",
+    letterSpacing: 3,
+    textTransform: "uppercase",
+  },
+  moveToL2Title: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 38,
+    color: "#4AA8D8",
+    letterSpacing: -1,
+    lineHeight: 42,
+    marginTop: -2,
+  },
+  moveToL2Divider: {
+    width: 60,
+    height: 1,
+    backgroundColor: "rgba(74, 168, 216, 0.3)",
+    marginVertical: 6,
+  },
+  moveToL2Body: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.65)",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 6,
+  },
+
+  // Level 2 Complete modal
+  l2CompleteOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(5, 15, 30, 0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  l2CompleteCard: {
+    backgroundColor: "#071020",
+    borderRadius: 28,
+    padding: 32,
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    maxWidth: 340,
+    borderWidth: 1.5,
+    borderColor: "rgba(74, 168, 216, 0.4)",
+    shadowColor: "#4AA8D8",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  l2CompleteTitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: "rgba(74, 168, 216, 0.75)",
+    letterSpacing: 4,
+    textTransform: "uppercase",
+  },
+  l2CompleteTitleAccent: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 38,
+    color: "#4AA8D8",
+    letterSpacing: -1,
+    lineHeight: 42,
+    marginTop: -4,
+  },
+  l2CompleteDivider: {
+    width: 60,
+    height: 1,
+    backgroundColor: "rgba(74, 168, 216, 0.3)",
+    marginVertical: 6,
   },
 });

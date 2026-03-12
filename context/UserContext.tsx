@@ -20,6 +20,7 @@ interface UserContextValue {
   checkInSuccess: () => Promise<void>;
   checkInRelapse: () => Promise<void>;
   resetJourney: () => Promise<void>;
+  moveToLevel2: () => Promise<void>;
   markWelcomeSeen: () => void;
   canCheckInToday: boolean;
 }
@@ -133,6 +134,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUser(reset);
   }
 
+  async function moveToLevel2() {
+    if (!user) return;
+    const updated: UserData = {
+      ...user,
+      currentLevel: 2,
+      journeyPosition: 0,
+    };
+    await saveUserToApi(updated);
+    setUser(updated);
+  }
+
   function markWelcomeSeen() {
     setHasSeenWelcome(true);
   }
@@ -155,6 +167,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       checkInSuccess,
       checkInRelapse,
       resetJourney,
+      moveToLevel2,
       markWelcomeSeen,
       canCheckInToday,
     }),
