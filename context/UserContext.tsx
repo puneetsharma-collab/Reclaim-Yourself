@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   UserData,
   getCurrentUserId,
@@ -9,13 +8,6 @@ import {
   getTodayString,
 } from "@/lib/storage";
 import { getApiUrl } from "@/lib/query-client";
-
-async function clearBlessingKeys(username: string) {
-  await AsyncStorage.multiRemove([
-    `reclaim_l1_blessing_${username}`,
-    `reclaim_l2_blessing_${username}`,
-  ]);
-}
 
 interface UserContextValue {
   user: UserData | null;
@@ -29,6 +21,8 @@ interface UserContextValue {
   checkInRelapse: () => Promise<void>;
   resetJourney: () => Promise<void>;
   moveToLevel2: () => Promise<void>;
+  claimL1Blessing: () => Promise<void>;
+  claimL2Blessing: () => Promise<void>;
   markWelcomeSeen: () => void;
   canCheckInToday: boolean;
 }
@@ -118,14 +112,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   async function checkInRelapse() {
     if (!user) return;
     const updated = applyCheckInRelapse(user);
-    await clearBlessingKeys(user.username);
     await saveUserToApi(updated);
     setUser(updated);
   }
 
   async function resetJourney() {
     if (!user) return;
-    await clearBlessingKeys(user.username);
     const reset: UserData = {
       ...user,
       currentStreak: 0,
@@ -138,6 +130,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       checkpointUnlocked: false,
       l2Checkpoint1Unlocked: false,
       l2Checkpoint2Unlocked: false,
+      l1BlessingClaimed: false,
+      l2BlessingClaimed: false,
       currentLevel: 1,
       journeyPosition: 0,
       lastAppOpenDate: getTodayString(),
@@ -154,7 +148,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
       journeyPosition: 0,
       l2Checkpoint1Unlocked: false,
       l2Checkpoint2Unlocked: false,
+      l2BlessingClaimed: false,
     };
+    await saveUserToApi(updated);
+    setUser(updated);
+  }
+
+  async function claimL1Blessing() {
+    if (!user) return;
+    const updated: UserData = { ...user, l1BlessingClaimed: true };
+    await saveUserToApi(updated);
+    setUser(updated);
+  }
+
+  async function claimL2Blessing() {
+    if (!user) return;
+    const updated: UserData = { ...user, l2BlessingClaimed: true };
     await saveUserToApi(updated);
     setUser(updated);
   }
@@ -182,6 +191,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       checkInRelapse,
       resetJourney,
       moveToLevel2,
+      claimL1Blessing,
+      claimL2Blessing,
       markWelcomeSeen,
       canCheckInToday,
     }),

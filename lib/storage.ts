@@ -14,6 +14,8 @@ export interface UserData {
   checkpointUnlocked: boolean;
   l2Checkpoint1Unlocked: boolean;
   l2Checkpoint2Unlocked: boolean;
+  l1BlessingClaimed: boolean;
+  l2BlessingClaimed: boolean;
   currentLevel: number;
   journeyPosition: number;
   lastAppOpenDate: string | null;
@@ -112,5 +114,7 @@ export function applyCheckInRelapse(user: UserData): UserData {
     lastAppOpenDate: getTodayString(),
     l2Checkpoint1Unlocked: false,
     l2Checkpoint2Unlocked: false,
+    l1BlessingClaimed: false,
+    l2BlessingClaimed: false,
   };
 }

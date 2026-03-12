@@ -14,6 +14,8 @@
     "checkpointUnlocked": false,
     "l2Checkpoint1Unlocked": false,
     "l2Checkpoint2Unlocked": false,
+    "l1BlessingClaimed": false,
+    "l2BlessingClaimed": false,
     "currentLevel": 1,
     "journeyPosition": 2,
     "lastAppOpenDate": "2026-03-12"

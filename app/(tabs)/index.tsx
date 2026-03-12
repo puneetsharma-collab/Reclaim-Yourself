@@ -11,7 +11,6 @@ import {
   ImageSourcePropType,
   ScrollView,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -62,8 +61,6 @@ const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
 const IMG_L1_FINAL = require("../../assets/images/l1-final.jpg");
 const IMG_L2_FINAL = require("../../assets/images/l2-final.jpg");
 
-const BLESSING_KEY_PREFIX = "reclaim_l1_blessing_";
-const BLESSING_L2_KEY_PREFIX = "reclaim_l2_blessing_";
 
 // ─── Helper: derive scene state from dayIndex + level ────────────────────────
 function getSceneState(dayIndex: number, level: number = 1): {
@@ -276,7 +273,7 @@ function CheckInContent({
 // ─── Main Journey Screen ──────────────────────────────────────────────────────
 export default function JourneyScreen() {
   const insets = useSafeAreaInsets();
-  const { user, canCheckInToday, checkInSuccess, checkInRelapse, moveToLevel2 } = useUser();
+  const { user, canCheckInToday, checkInSuccess, checkInRelapse, moveToLevel2, claimL1Blessing, claimL2Blessing } = useUser();
   const [showConfirmRelapse, setShowConfirmRelapse] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebMsg, setCelebMsg] = useState("");
@@ -286,8 +283,6 @@ export default function JourneyScreen() {
   const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
   const [showMoveToLevel2Modal, setShowMoveToLevel2Modal] = useState(false);
   const [showLevel2CompleteModal, setShowLevel2CompleteModal] = useState(false);
-  const [blessingClaimed, setBlessingClaimed] = useState(false);
-  const [l2BlessingClaimed, setL2BlessingClaimed] = useState(false);
   const celebOpacity = useSharedValue(0);
   const celebY = useSharedValue(20);
   const celebStyle = useAnimatedStyle(() => ({
@@ -295,18 +290,10 @@ export default function JourneyScreen() {
     transform: [{ translateY: celebY.value }],
   }));
 
-  useEffect(() => {
-    if (user?.username) {
-      AsyncStorage.getItem(BLESSING_KEY_PREFIX + user.username).then((val) => {
-        if (val === "claimed") setBlessingClaimed(true);
-      });
-      AsyncStorage.getItem(BLESSING_L2_KEY_PREFIX + user.username).then((val) => {
-        if (val === "claimed") setL2BlessingClaimed(true);
-      });
-    }
-  }, [user?.username]);
-
   if (!user) return null;
+
+  const blessingClaimed = user.l1BlessingClaimed ?? false;
+  const l2BlessingClaimed = user.l2BlessingClaimed ?? false;
 
   const streak = user.currentStreak;
   const journeyPos = user.journeyPosition ?? 0;
@@ -373,8 +360,7 @@ export default function JourneyScreen() {
 
   async function handleClaimBlessing() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await AsyncStorage.setItem(BLESSING_KEY_PREFIX + user.username, "claimed");
-    setBlessingClaimed(true);
+    await claimL1Blessing();
     setShowLevelCompleteModal(false);
   }
 
@@ -386,8 +372,7 @@ export default function JourneyScreen() {
 
   async function handleClaimL2Blessing() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await AsyncStorage.setItem(BLESSING_L2_KEY_PREFIX + user.username, "claimed");
-    setL2BlessingClaimed(true);
+    await claimL2Blessing();
     setShowLevel2CompleteModal(false);
   }
 
