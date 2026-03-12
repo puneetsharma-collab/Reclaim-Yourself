@@ -4,16 +4,16 @@
     "username": "Admin",
     "password": "$2b$10$O1pe4K5KfkvElaVutmle1uvNjLcZQ9jWuapRoZpPvlNPCA7R7H2bS",
     "joinDate": "2026-03-11",
-    "currentStreak": 1,
-    "longestStreak": 1,
+    "currentStreak": 2,
+    "longestStreak": 2,
     "freezePoints": 0,
-    "totalWins": 1,
+    "totalWins": 2,
     "totalRelapses": 0,
-    "lastCheckInDate": "2026-03-11",
+    "lastCheckInDate": "2026-03-12",
     "shrineUnlocked": false,
     "checkpointUnlocked": false,
     "currentLevel": 1,
-    "journeyPosition": 1,
-    "lastAppOpenDate": "2026-03-11"
+    "journeyPosition": 2,
+    "lastAppOpenDate": "2026-03-12"
   }
 ]

@@ -11,6 +11,7 @@ import {
   ImageSourcePropType,
   ScrollView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -53,6 +54,9 @@ const LEVEL_IMAGES: Record<number, Record<number, ImageSourcePropType>> = {
 };
 
 const IMG_CHECKPOINT = require("../../assets/images/checkpoint-scene.jpg");
+const IMG_L1_FINAL = require("../../assets/images/l1-final.jpg");
+
+const BLESSING_KEY_PREFIX = "reclaim_l1_blessing_";
 
 // ─── Helper: derive scene state from streak + level ───────────────────────────
 function getSceneState(streak: number, level: number = 1): {
@@ -81,21 +85,26 @@ function getSceneState(streak: number, level: number = 1): {
 }
 
 // ─── Animated scene component ─────────────────────────────────────────────────
-function JourneyScene({ streak, level }: { streak: number; level: number }) {
+function JourneyScene({ streak, level, blessingClaimed }: { streak: number; level: number; blessingClaimed: boolean }) {
   const scene = getSceneState(streak, level);
+  const displayImage = blessingClaimed && streak >= 7 ? IMG_L1_FINAL : scene.characterImage;
   const fadeAnim = useSharedValue(1);
   const prevStreakRef = useRef(streak);
+  const prevBlessingRef = useRef(blessingClaimed);
 
   useEffect(() => {
-    if (prevStreakRef.current !== streak) {
+    const streakChanged = prevStreakRef.current !== streak;
+    const blessingChanged = prevBlessingRef.current !== blessingClaimed;
+    if (streakChanged || blessingChanged) {
       prevStreakRef.current = streak;
+      prevBlessingRef.current = blessingClaimed;
       // Fade out → swap → fade in
       fadeAnim.value = withSequence(
         withTiming(0, { duration: 200, easing: Easing.out(Easing.ease) }),
         withTiming(1, { duration: 400, easing: Easing.in(Easing.ease) })
       );
     }
-  }, [streak]);
+  }, [streak, blessingClaimed]);
 
   const animStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
@@ -106,7 +115,7 @@ function JourneyScene({ streak, level }: { streak: number; level: number }) {
       {/* Animated character fills the full background */}
       <Animated.View style={[StyleSheet.absoluteFill, animStyle]}>
         <Image
-          source={scene.characterImage}
+          source={displayImage}
           style={styles.sceneImage}
           resizeMode="cover"
         />
@@ -226,12 +235,22 @@ export default function JourneyScreen() {
   const [celebMsg, setCelebMsg] = useState("");
   const [previewDay, setPreviewDay] = useState<number | null>(null);
   const [titleTapCount, setTitleTapCount] = useState(0);
+  const [showLevelCompleteModal, setShowLevelCompleteModal] = useState(false);
+  const [blessingClaimed, setBlessingClaimed] = useState(false);
   const celebOpacity = useSharedValue(0);
   const celebY = useSharedValue(20);
   const celebStyle = useAnimatedStyle(() => ({
     opacity: celebOpacity.value,
     transform: [{ translateY: celebY.value }],
   }));
+
+  useEffect(() => {
+    if (user?.username) {
+      AsyncStorage.getItem(BLESSING_KEY_PREFIX + user.username).then((val) => {
+        if (val === "claimed") setBlessingClaimed(true);
+      });
+    }
+  }, [user?.username]);
 
   if (!user) return null;
 
@@ -253,10 +272,14 @@ export default function JourneyScreen() {
     await checkInSuccess();
 
     const newStreak = streak + 1;
+
+    if (newStreak >= 7 && !blessingClaimed) {
+      setShowLevelCompleteModal(true);
+      return;
+    }
+
     const msg =
-      newStreak >= 7
-        ? "You have reclaimed a part of yourself."
-        : newStreak === 3
+      newStreak === 3
         ? "Checkpoint reached. Freeze point earned."
         : "You stayed strong today.";
     setCelebMsg(msg);
@@ -271,6 +294,13 @@ export default function JourneyScreen() {
       withDelay(2200, withTiming(20, { duration: 400 }))
     );
     setTimeout(() => setShowCelebration(false), 3000);
+  }
+
+  async function handleClaimBlessing() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await AsyncStorage.setItem(BLESSING_KEY_PREFIX + user.username, "claimed");
+    setBlessingClaimed(true);
+    setShowLevelCompleteModal(false);
   }
 
   function handleNoPress() {
@@ -290,7 +320,7 @@ export default function JourneyScreen() {
   return (
     <View style={styles.container}>
       {/* Full-screen journey scene */}
-      <JourneyScene streak={displayStreak} level={user.currentLevel ?? 1} />
+      <JourneyScene streak={displayStreak} level={user.currentLevel ?? 1} blessingClaimed={blessingClaimed} />
 
       {/* Preview mode controls */}
       {previewDay !== null && (
@@ -464,6 +494,47 @@ export default function JourneyScreen() {
             <Text style={styles.modalNote}>
               A stumble does not erase your progress. Return to the path.
             </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Level One Complete modal ── */}
+      <Modal
+        visible={showLevelCompleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.levelCompleteOverlay}>
+          <View style={styles.levelCompleteCard}>
+            <View style={styles.levelCompleteIconRow}>
+              <Ionicons name="sparkles" size={20} color={Colors.shrineGold} />
+              <Ionicons name="sparkles" size={28} color={Colors.shrineGold} />
+              <Ionicons name="sparkles" size={20} color={Colors.shrineGold} />
+            </View>
+            <Text style={styles.levelCompleteTitle}>Level One</Text>
+            <Text style={styles.levelCompleteTitleAccent}>Complete</Text>
+            <View style={styles.levelCompleteDivider} />
+            <Text style={styles.levelCompleteBody}>
+              You have walked the path.{"\n"}Your blessing awaits.
+            </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.claimBtn,
+                pressed && styles.claimBtnPressed,
+              ]}
+              onPress={handleClaimBlessing}
+            >
+              <LinearGradient
+                colors={["#D4AF37", "#B8860B"]}
+                style={styles.claimBtnGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name="gift-outline" size={18} color="#fff" />
+                <Text style={styles.claimBtnText}>Claim Your Blessing</Text>
+              </LinearGradient>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -994,5 +1065,94 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
     color: "#ff6b6b",
+  },
+
+  // Level One Complete modal
+  levelCompleteOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(10, 6, 2, 0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  levelCompleteCard: {
+    backgroundColor: "#1A1208",
+    borderRadius: 28,
+    padding: 32,
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    maxWidth: 340,
+    borderWidth: 1.5,
+    borderColor: "rgba(212, 175, 55, 0.4)",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  levelCompleteIconRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  levelCompleteTitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: "rgba(212, 175, 55, 0.75)",
+    letterSpacing: 4,
+    textTransform: "uppercase",
+  },
+  levelCompleteTitleAccent: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 38,
+    color: "#D4AF37",
+    letterSpacing: -1,
+    lineHeight: 42,
+    marginTop: -4,
+  },
+  levelCompleteDivider: {
+    width: 60,
+    height: 1,
+    backgroundColor: "rgba(212, 175, 55, 0.3)",
+    marginVertical: 6,
+  },
+  levelCompleteBody: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 15,
+    color: "rgba(255, 255, 255, 0.7)",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 6,
+  },
+  claimBtn: {
+    width: "100%",
+    borderRadius: 14,
+    overflow: "hidden",
+    marginTop: 6,
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  claimBtnPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.9,
+  },
+  claimBtnGradient: {
+    flexDirection: "row",
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  claimBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#fff",
+    letterSpacing: 0.3,
   },
 });
