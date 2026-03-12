@@ -80,15 +80,17 @@ function getSceneState(dayIndex: number, level: number = 1): {
   if (level === 2) {
     return {
       characterImage,
-      showCheckpoint: dayIndex >= 3,
+      showCheckpoint: dayIndex >= 5,
       showShrine: dayIndex >= 10,
       streakLabel:
         dayIndex === 0
           ? "A new journey begins."
-          : dayIndex <= 2
+          : dayIndex <= 4
           ? "You have entered the water."
+          : dayIndex <= 6
+          ? "First checkpoint passed."
           : dayIndex <= 9
-          ? "Swimming toward the horizon."
+          ? "Second checkpoint passed."
           : "You have crossed the water.",
     };
   }
@@ -348,8 +350,11 @@ export default function JourneyScreen() {
       return;
     }
 
+    const isL1Checkpoint = currentLevel === 1 && newJourneyPos === 3;
+    const isL2Checkpoint1 = currentLevel === 2 && newJourneyPos === 5;
+    const isL2Checkpoint2 = currentLevel === 2 && newJourneyPos === 7;
     const msg =
-      newStreak === 3
+      isL1Checkpoint || isL2Checkpoint1 || isL2Checkpoint2
         ? "Checkpoint reached. Freeze point earned."
         : "You stayed strong today.";
     setCelebMsg(msg);
@@ -535,13 +540,14 @@ export default function JourneyScreen() {
                 style={[
                   styles.dayDot,
                   journeyPos >= day && styles.dayDotActive,
-                  day === 3 && styles.dayDotCheckpoint,
+                  displayLevel === 1 && day === 3 && styles.dayDotCheckpoint,
+                  displayLevel === 2 && (day === 5 || day === 7) && styles.dayDotCheckpoint,
                   displayLevel === 2 && day === 10 && styles.dayDotShrine,
                 ]}
               >
                 <Text style={[styles.dayDotText, maxDaysForLevel === 10 && styles.dayDotTextSmall]}>{day}</Text>
               </View>
-              {day === 3 && (
+              {((displayLevel === 1 && day === 3) || (displayLevel === 2 && (day === 5 || day === 7))) && (
                 <View style={styles.checkpointLabel}>
                   <Ionicons name="flag" size={10} color={Colors.checkpointBlue} />
                   <Text style={styles.checkpointLabelText}>CP</Text>
@@ -563,8 +569,8 @@ export default function JourneyScreen() {
           {(displayLevel === 2
             ? [
                 { day: 1, label: "Day 1", icon: "water-outline" as const },
-                { day: 3, label: "Checkpoint", icon: "flag" as const },
-                { day: 5, label: "Day 5", icon: "navigate-outline" as const },
+                { day: 5, label: "Checkpoint I", icon: "flag" as const },
+                { day: 7, label: "Checkpoint II", icon: "flag" as const },
                 { day: 10, label: "Horizon", icon: "sparkles" as const },
               ]
             : [

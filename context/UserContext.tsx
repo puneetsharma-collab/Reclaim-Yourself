@@ -136,6 +136,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       lastCheckInDate: null,
       shrineUnlocked: false,
       checkpointUnlocked: false,
+      l2Checkpoint1Unlocked: false,
+      l2Checkpoint2Unlocked: false,
       currentLevel: 1,
       journeyPosition: 0,
       lastAppOpenDate: getTodayString(),
@@ -150,6 +152,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       ...user,
       currentLevel: 2,
       journeyPosition: 0,
+      l2Checkpoint1Unlocked: false,
+      l2Checkpoint2Unlocked: false,
     };
     await saveUserToApi(updated);
     setUser(updated);

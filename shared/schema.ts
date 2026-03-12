@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   lastCheckInDate: text("last_check_in_date"),
   shrineUnlocked: boolean("shrine_unlocked").notNull().default(false),
   checkpointUnlocked: boolean("checkpoint_unlocked").notNull().default(false),
+  l2Checkpoint1Unlocked: boolean("l2_checkpoint1_unlocked").notNull().default(false),
+  l2Checkpoint2Unlocked: boolean("l2_checkpoint2_unlocked").notNull().default(false),
   currentLevel: integer("current_level").notNull().default(1),
   journeyPosition: integer("journey_position").notNull().default(0),
   lastAppOpenDate: text("last_app_open_date"),

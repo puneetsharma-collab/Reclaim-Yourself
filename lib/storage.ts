@@ -12,6 +12,8 @@ export interface UserData {
   lastCheckInDate: string | null;
   shrineUnlocked: boolean;
   checkpointUnlocked: boolean;
+  l2Checkpoint1Unlocked: boolean;
+  l2Checkpoint2Unlocked: boolean;
   currentLevel: number;
   journeyPosition: number;
   lastAppOpenDate: string | null;
@@ -60,6 +62,7 @@ export function applyCheckInSuccess(user: UserData): UserData {
   const maxDays = getMaxDaysForLevel(user.currentLevel ?? 1);
   const journeyPosition = Math.min((user.journeyPosition ?? 0) + 1, maxDays);
 
+  const currentLevel = user.currentLevel ?? 1;
   const checkpointUnlocked = newStreak >= 3 ? true : user.checkpointUnlocked;
 
   // Shrine unlocked when level completion day is reached
@@ -67,8 +70,19 @@ export function applyCheckInSuccess(user: UserData): UserData {
     journeyPosition >= maxDays ? true : user.shrineUnlocked;
 
   let freezePoints = user.freezePoints;
-  if (newStreak === 3 && !user.checkpointUnlocked) {
+  let l2Checkpoint1Unlocked = user.l2Checkpoint1Unlocked ?? false;
+  let l2Checkpoint2Unlocked = user.l2Checkpoint2Unlocked ?? false;
+
+  if (currentLevel === 1 && newStreak === 3 && !user.checkpointUnlocked) {
     freezePoints += 1;
+  }
+  if (currentLevel === 2 && journeyPosition === 5 && !l2Checkpoint1Unlocked) {
+    freezePoints += 1;
+    l2Checkpoint1Unlocked = true;
+  }
+  if (currentLevel === 2 && journeyPosition === 7 && !l2Checkpoint2Unlocked) {
+    freezePoints += 1;
+    l2Checkpoint2Unlocked = true;
   }
 
   return {
@@ -80,6 +94,8 @@ export function applyCheckInSuccess(user: UserData): UserData {
     checkpointUnlocked,
     shrineUnlocked,
     freezePoints,
+    l2Checkpoint1Unlocked,
+    l2Checkpoint2Unlocked,
     journeyPosition,
     lastAppOpenDate: getTodayString(),
   };
@@ -94,5 +110,7 @@ export function applyCheckInRelapse(user: UserData): UserData {
     totalRelapses: user.totalRelapses + 1,
     lastCheckInDate: getTodayString(),
     lastAppOpenDate: getTodayString(),
+    l2Checkpoint1Unlocked: false,
+    l2Checkpoint2Unlocked: false,
   };
 }
