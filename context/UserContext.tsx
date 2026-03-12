@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   UserData,
   getCurrentUserId,
@@ -8,6 +9,13 @@ import {
   getTodayString,
 } from "@/lib/storage";
 import { getApiUrl } from "@/lib/query-client";
+
+async function clearBlessingKeys(username: string) {
+  await AsyncStorage.multiRemove([
+    `reclaim_l1_blessing_${username}`,
+    `reclaim_l2_blessing_${username}`,
+  ]);
+}
 
 interface UserContextValue {
   user: UserData | null;
@@ -110,12 +118,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   async function checkInRelapse() {
     if (!user) return;
     const updated = applyCheckInRelapse(user);
+    await clearBlessingKeys(user.username);
     await saveUserToApi(updated);
     setUser(updated);
   }
 
   async function resetJourney() {
     if (!user) return;
+    await clearBlessingKeys(user.username);
     const reset: UserData = {
       ...user,
       currentStreak: 0,

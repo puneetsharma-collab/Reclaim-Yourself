@@ -693,7 +693,7 @@ export default function JourneyScreen() {
       </Modal>
 
       {/* ── Begin Level 2 floating button (top-right, shown after L1 blessing) ── */}
-      {(blessingClaimed && currentLevel === 1 && !showLevelCompleteModal) || showMoveToLevel2Modal ? (
+      {(blessingClaimed && currentLevel === 1 && journeyPos >= 7 && !showLevelCompleteModal) || showMoveToLevel2Modal ? (
         <Pressable
           style={({ pressed }) => [
             styles.beginL2Btn,
