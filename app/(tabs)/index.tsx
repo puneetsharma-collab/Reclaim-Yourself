@@ -412,8 +412,8 @@ export default function JourneyScreen() {
         dayIndex={displayDayIndex}
         streak={streak}
         level={displayLevel}
-        blessingClaimed={showLevelCompleteModal || blessingClaimed}
-        l2BlessingClaimed={showLevel2CompleteModal || l2BlessingClaimed}
+        blessingClaimed={blessingClaimed}
+        l2BlessingClaimed={l2BlessingClaimed}
       />
 
       {/* Preview mode controls */}
