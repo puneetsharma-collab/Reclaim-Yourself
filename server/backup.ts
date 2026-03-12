@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import { execSync } from "child_process";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { users } from "../shared/schema";
@@ -9,6 +10,25 @@ const BACKUP_PATH = path.resolve(process.cwd(), "data", "db-backup.json");
 function getDb() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   return { db: drizzle(pool), pool };
+}
+
+async function ensureSchema(pool: Pool): Promise<void> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT to_regclass('public.users') AS exists`
+    );
+    if (!res.rows[0].exists) {
+      console.log("[backup] users table missing — pushing schema...");
+      execSync("npx drizzle-kit push --force", {
+        stdio: "inherit",
+        env: { ...process.env },
+      });
+      console.log("[backup] Schema pushed successfully.");
+    }
+  } finally {
+    client.release();
+  }
 }
 
 export async function saveBackup(allUsers: (typeof users.$inferSelect)[]): Promise<void> {
@@ -23,6 +43,8 @@ export async function saveBackup(allUsers: (typeof users.$inferSelect)[]): Promi
 export async function restoreFromBackupIfNeeded(): Promise<void> {
   const { db, pool } = getDb();
   try {
+    await ensureSchema(pool);
+
     const existing = await db.select().from(users);
 
     if (existing.length > 0) {
