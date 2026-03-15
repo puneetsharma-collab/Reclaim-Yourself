@@ -481,7 +481,10 @@ export default function JourneyScreen() {
           <View style={styles.previewNavRow}>
             <Pressable
               style={styles.previewArrow}
-              onPress={() => setPreviewDay(Math.max(0, previewDay - 1))}
+              onPress={() => {
+                setIsTransitioning(true);
+                setPreviewDay(Math.max(0, previewDay - 1));
+              }}
             >
               <Ionicons name="chevron-back" size={18} color="#fff" />
             </Pressable>
@@ -492,7 +495,10 @@ export default function JourneyScreen() {
             </View>
             <Pressable
               style={styles.previewArrow}
-              onPress={() => setPreviewDay(Math.min(maxDaysForLevel, previewDay + 1))}
+              onPress={() => {
+                setIsTransitioning(true);
+                setPreviewDay(Math.min(maxDaysForLevel, previewDay + 1));
+              }}
             >
               <Ionicons name="chevron-forward" size={18} color="#fff" />
             </Pressable>
@@ -500,13 +506,13 @@ export default function JourneyScreen() {
           <View style={styles.previewActionsRow}>
             <Pressable
               style={[styles.previewChip, displayLevel === 1 ? styles.previewChipActive : styles.previewChipInactive]}
-              onPress={() => { setPreviewLevel(1); setPreviewDay(0); }}
+              onPress={() => { setIsTransitioning(true); setPreviewLevel(1); setPreviewDay(0); }}
             >
               <Text style={styles.previewChipText}>Lv 1</Text>
             </Pressable>
             <Pressable
               style={[styles.previewChip, displayLevel === 2 ? styles.previewChipActive : styles.previewChipInactive]}
-              onPress={() => { setPreviewLevel(2); setPreviewDay(0); }}
+              onPress={() => { setIsTransitioning(true); setPreviewLevel(2); setPreviewDay(0); }}
             >
               <Text style={styles.previewChipText}>Lv 2</Text>
             </Pressable>
