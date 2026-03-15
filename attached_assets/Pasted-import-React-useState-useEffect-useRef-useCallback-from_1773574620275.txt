@@ -89,10 +89,11 @@ function Level1VideoScene({
   onTransitionComplete: () => void;
   shouldTransition: boolean;
 }) {
-  const fadeOverlay = useSharedValue(0);
+  const fadeOverlay = useSharedValue(0); // black fade overlay
   const prevDayRef = useRef(dayIndex);
   const prevBlessingRef = useRef(blessingClaimed);
 
+  // Determine which video to show
   const videoSource = blessingClaimed
     ? L1_BLESSING_VIDEO
     : LEVEL1_VIDEOS[Math.min(dayIndex, 7)] ?? LEVEL1_VIDEOS[0];
@@ -103,6 +104,7 @@ function Level1VideoScene({
     p.play();
   });
 
+  // When day changes: fade out → swap video → fade in
   useEffect(() => {
     const dayChanged = prevDayRef.current !== dayIndex;
     const blessingChanged = prevBlessingRef.current !== blessingClaimed;
@@ -111,13 +113,16 @@ function Level1VideoScene({
       prevDayRef.current = dayIndex;
       prevBlessingRef.current = blessingClaimed;
 
+      // Fade to black
       fadeOverlay.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) }, (finished) => {
         if (finished) {
           runOnJS(() => {
+            // Load new video source and play
             player.replace(videoSource);
             player.play();
           })();
 
+          // Fade back in
           fadeOverlay.value = withDelay(
             150,
             withTiming(0, { duration: 500, easing: Easing.in(Easing.ease) }, (done) => {
@@ -132,12 +137,14 @@ function Level1VideoScene({
     }
   }, [dayIndex, blessingClaimed]);
 
+  // Pause on video end
   useEffect(() => {
     const sub = player.addListener("playingChange", (isPlaying) => {
+      // handled by playToEnd
     });
     const endSub = player.addListener("playToEnd", () => {
       player.pause();
-      player.seekBy(0);
+      player.seekBy(0); // stay on last frame
     });
     return () => {
       sub.remove();
@@ -155,6 +162,7 @@ function Level1VideoScene({
 
   return (
     <View style={styles.sceneContainer}>
+      {/* Video fills entire background */}
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
@@ -162,16 +170,19 @@ function Level1VideoScene({
         nativeControls={false}
       />
 
+      {/* Black fade overlay for smooth transitions */}
       <Animated.View
         style={[StyleSheet.absoluteFill, styles.fadeOverlay, overlayStyle]}
         pointerEvents="none"
       />
 
+      {/* Streak badge */}
       <View style={styles.sceneBadge}>
         <Text style={styles.sceneBadgeNumber}>{streak}</Text>
         <Text style={styles.sceneBadgeLabel}>{streak === 1 ? "day" : "days"}</Text>
       </View>
 
+      {/* Checkpoint indicator */}
       {showCheckpoint && (
         <View style={styles.checkpointBadge}>
           <Ionicons name="flag" size={11} color={Colors.white} />
@@ -179,6 +190,7 @@ function Level1VideoScene({
         </View>
       )}
 
+      {/* Shrine indicator */}
       {showShrine && (
         <View style={styles.shrineBadge}>
           <Ionicons name="sparkles" size={11} color={Colors.shrineGold} />
@@ -186,6 +198,7 @@ function Level1VideoScene({
         </View>
       )}
 
+      {/* Atmospheric label */}
       <View style={styles.sceneLabel}>
         <Text style={styles.sceneLabelText}>{streakLabel}</Text>
       </View>
@@ -460,6 +473,7 @@ export default function JourneyScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Scene — Level 1 uses video, Level 2 uses images */}
       {displayLevel === 1 ? (
         <Level1VideoScene
           dayIndex={displayDayIndex}
@@ -476,6 +490,7 @@ export default function JourneyScreen() {
         />
       )}
 
+      {/* Preview mode controls */}
       {previewDay !== null && (
         <View style={styles.previewPanel}>
           <View style={styles.previewNavRow}>
@@ -529,6 +544,7 @@ export default function JourneyScreen() {
         </View>
       )}
 
+      {/* Header overlay */}
       <View style={[styles.headerOverlay, { paddingTop: topPad, marginTop: insets.top + 24 }]}>
         <View style={styles.headerContent}>
           <Pressable style={styles.headerTextBlock} onPress={handleTitleTap}>
@@ -543,6 +559,7 @@ export default function JourneyScreen() {
         </View>
       </View>
 
+      {/* Floating check-in box */}
       <View style={[styles.checkInBoxWrapper, { paddingBottom: tabBarHeight }]}>
         {user.freezePoints > 0 && (
           <View style={styles.freezeInfoBox}>
@@ -562,6 +579,7 @@ export default function JourneyScreen() {
           />
         </View>
 
+        {/* Journey Days Progress */}
         <View style={styles.journeyDaysContainer}>
           {Array.from({ length: maxDaysForLevel }, (_, i) => i + 1).map((day) => (
             <View key={day} style={styles.dayDotWrapper}>
@@ -587,6 +605,7 @@ export default function JourneyScreen() {
         </View>
       </View>
 
+      {/* Milestone progress */}
       <View style={styles.milestoneWrapper}>
         <ScrollView
           horizontal
@@ -624,6 +643,7 @@ export default function JourneyScreen() {
         </ScrollView>
       </View>
 
+      {/* Celebration toast */}
       {showCelebration && (
         <Animated.View style={[styles.celebToast, celebStyle]}>
           <LinearGradient
@@ -638,6 +658,7 @@ export default function JourneyScreen() {
         </Animated.View>
       )}
 
+      {/* Relapse confirmation modal */}
       <Modal visible={showConfirmRelapse} transparent animationType="fade" onRequestClose={() => setShowConfirmRelapse(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -659,6 +680,7 @@ export default function JourneyScreen() {
         </View>
       </Modal>
 
+      {/* Level One Complete modal */}
       <Modal visible={showLevelCompleteModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.levelCompleteOverlay}>
           <View style={styles.levelCompleteCard}>
@@ -684,6 +706,7 @@ export default function JourneyScreen() {
         </View>
       </Modal>
 
+      {/* Begin Level 2 button */}
       {(blessingClaimed && currentLevel === 1 && journeyPos >= 7 && !showLevelCompleteModal) || showMoveToLevel2Modal ? (
         <Pressable
           style={({ pressed }) => [
@@ -701,6 +724,7 @@ export default function JourneyScreen() {
         </Pressable>
       ) : null}
 
+      {/* Level Two Complete modal */}
       <Modal visible={showLevel2CompleteModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.l2CompleteOverlay}>
           <View style={styles.l2CompleteCard}>
