@@ -27,12 +27,6 @@ export function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-export function getYesterdayString(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split("T")[0];
-}
-
 export function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(dateA);
   const b = new Date(dateB);

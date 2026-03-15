@@ -6,7 +6,6 @@ import {
   ScrollView,
   Platform,
   Image,
-  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,8 +21,6 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 import { useUser } from "@/context/UserContext";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SHRINE_IMG = require("../../assets/images/shrine-scene.jpg");
 const DAY7_IMG = require("../../assets/images/l1-day7.jpg");
 const PATH_BG_IMG = require("../../assets/images/path-bg.jpg");
 

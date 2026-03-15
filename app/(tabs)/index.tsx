@@ -426,6 +426,7 @@ export default function JourneyScreen() {
   }
 
   async function handleClaimBlessing() {
+    if (previewDay !== null) { setShowLevelCompleteModal(false); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setIsTransitioning(true);
     await claimL1Blessing();
@@ -433,12 +434,14 @@ export default function JourneyScreen() {
   }
 
   async function handleMoveToLevel2() {
+    if (previewDay !== null) { setShowMoveToLevel2Modal(false); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await moveToLevel2();
     setShowMoveToLevel2Modal(false);
   }
 
   async function handleClaimL2Blessing() {
+    if (previewDay !== null) { setShowLevel2CompleteModal(false); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await claimL2Blessing();
     setShowLevel2CompleteModal(false);
@@ -740,13 +743,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background, position: "relative" },
 
   sceneContainer: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", overflow: "hidden" },
-  videoView: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-  },
   sceneImage: { width: "100%", height: "100%" },
   fadeOverlay: { backgroundColor: "#000" },
 

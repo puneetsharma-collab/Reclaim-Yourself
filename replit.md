@@ -25,6 +25,7 @@ The **Run button** starts both automatically. On a fresh GitHub import, `npm ins
 ### Backend
 - `server/index.ts` — Express server entry point (CORS, logging, static serving)
 - `server/routes.ts` — API routes: `/api/register`, `/api/login`, `/api/user/:username` (GET/PUT)
+- `server/backup.ts` — DB backup/restore on startup (writes to `data/db-backup.json`)
 - `shared/schema.ts` — Drizzle schema for the `users` table (all game data included)
 
 ### Frontend Core
@@ -35,16 +36,28 @@ The **Run button** starts both automatically. On a fresh GitHub import, `npm ins
 ### Screens
 - `app/(auth)/login.tsx` — Anonymous login
 - `app/(auth)/register.tsx` — Account creation
-- `app/welcome.tsx` — Animated welcome screen
-- `app/(tabs)/index.tsx` — **Journey tab**: full-screen character scene, daily check-in, day progress tracker
+- `app/welcome.tsx` — Animated welcome screen (shown once after signup)
+- `app/(tabs)/index.tsx` — **Journey tab**: full-screen video/image scene, daily check-in, day progress tracker, preview mode (tap title 5×)
 - `app/(tabs)/progress.tsx` — **Progress tab**: stats grid, 7-day chart, milestone badges
 - `app/(tabs)/shrine.tsx` — **Shrine tab**: shrine scene (unlocked at Day 7)
 - `app/(tabs)/profile.tsx` — **Profile tab**: user info, reset, logout
 
 ### Assets
-- `assets/images/l1-day0.png` through `l1-day7.jpg` — Level 1 character images (one per streak day 0–7)
-- Future levels follow the same pattern: `l2-day0.jpg` … `l2-day7.jpg`, etc.
-- `assets/images/shrine-scene.jpg` — Shrine scene (used in Shrine tab)
+- `assets/videos/` — Level 1 video backgrounds (`.mov` files, one per day 0–7 + blessing video)
+- `assets/images/l2-day0.jpg` through `l2-day10.jpg` — Level 2 static images (one per day)
+- `assets/images/l2-final.jpg` — Level 2 completion image
+- `assets/images/l1-day7.jpg` — Used in Shrine tab (unlocked state background)
+- `assets/images/path-bg.jpg` — Used in Shrine tab (locked state background)
+
+## Video / Image Mapping
+
+**Level 1** uses video files (`assets/videos/`):
+- Day 0–7 → `L1day0.mov` … `L1day7.mov`
+- After blessing claimed → `L1_blessing.mov`
+
+**Level 2** uses static images (`assets/images/`):
+- Day 0–10 → `l2-day0.jpg` … `l2-day10.jpg`
+- After blessing claimed → `l2-final.jpg`
 
 ## Data Model (PostgreSQL `users` table)
 
@@ -60,10 +73,14 @@ The **Run button** starts both automatically. On a fresh GitHub import, `npm ins
 | `total_wins` | integer | Total successful check-ins |
 | `total_relapses` | integer | Total stumbles |
 | `last_check_in_date` | text | YYYY-MM-DD or null |
-| `shrine_unlocked` | boolean | true when streak >= 7 |
+| `shrine_unlocked` | boolean | true when journey_position >= 7 (level 1) |
 | `checkpoint_unlocked` | boolean | true when streak >= 3 |
-| `current_level` | integer | 1 (days 0-3) or 2 (days 4-7) |
-| `journey_position` | integer | 0–7 |
+| `l2_checkpoint1_unlocked` | boolean | Level 2 day 5 checkpoint |
+| `l2_checkpoint2_unlocked` | boolean | Level 2 day 7 checkpoint |
+| `l1_blessing_claimed` | boolean | Blessing video plays when true |
+| `l2_blessing_claimed` | boolean | Level 2 final image shows when true |
+| `current_level` | integer | 1 or 2 |
+| `journey_position` | integer | 0–7 (L1) or 0–10 (L2) |
 | `last_app_open_date` | text | Used for missed-day detection |
 
 ## Key Game Logic
@@ -73,25 +90,19 @@ The **Run button** starts both automatically. On a fresh GitHub import, `npm ins
 - Auto-consumed when user missed a day (2+ days since last check-in)
 - Do NOT protect against active "No, I stumbled" — that always resets streak
 
-### Day → Image Mapping (Journey Screen)
-Images are looked up via `LEVEL_IMAGES[level][day]` in `app/(tabs)/index.tsx`.
+### Preview Mode (Dev Tool)
+- Tap the "Reclaim Yourself" title 5 times to enter preview mode
+- Navigate through all days and levels without making real API calls
+- Blessing/level-up buttons in preview mode are safely no-ops (no data changes)
 
-**Level 1** (`l1-dayN`):
-- Day 0 → `l1-day0.png` (exhausted, at start)
-- Day 1 → `l1-day1.png`
-- Day 2 → `l1-day2.jpg`
-- Day 3 → `l1-day3.jpg`
-- Day 4 → `l1-day4.jpg`
-- Day 5 → `l1-day5.jpg`
-- Day 6 → `l1-day6.jpg`
-- Day 7 → `l1-day7.jpg` (reclaimed)
-
-**Level 2+**: Add images as `l2-day0.jpg` … `l2-day7.jpg` and add a new block to `LEVEL_IMAGES` in `index.tsx`.
+### Backup System
+- `data/db-backup.json` is written on every PUT and after register
+- On server startup, if DB is empty, the backup is restored automatically
 
 ## Design System
 - Colors: `constants/colors.ts` — warm cream, sage green, muted gold, sunrise amber
 - Font: Inter (400, 500, 600, 700) via `@expo-google-fonts/inter`
-- Animations: react-native-reanimated
+- Animations: react-native-reanimated (fade transitions between videos/images)
 
 ## Environment Variables
 - `DATABASE_URL` — PostgreSQL connection string (set by Replit automatically)
