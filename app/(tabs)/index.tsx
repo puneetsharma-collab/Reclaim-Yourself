@@ -157,8 +157,8 @@ function Level1VideoScene({
     <View style={styles.sceneContainer}>
       <VideoView
         player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="contain"
+        style={{ position: "absolute", width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+        contentFit="cover"
         nativeControls={false}
       />
 
@@ -734,6 +734,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background, position: "relative" },
 
   sceneContainer: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", overflow: "hidden" },
+  videoView: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+  },
   sceneImage: { width: "100%", height: "100%" },
   fadeOverlay: { backgroundColor: "#000" },
 
