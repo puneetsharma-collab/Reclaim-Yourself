@@ -158,7 +158,7 @@ function Level1VideoScene({
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
       />
 
